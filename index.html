@@ -14,6 +14,8 @@
     --accent: #5b6ef5;
     --sun: #e3b100;
     --human: #d6336c;
+    --board: #0ca678;
+    --board-ink: #087f5b;
   }
   * { box-sizing: border-box; }
   body {
@@ -31,6 +33,17 @@
   header .lead {
     display: inline-block; background: #fff; border: 2px dashed #c9d2e6;
     border-radius: 999px; padding: 9px 20px; font-size: 15px; color: var(--sub); line-height: 1.6;
+  }
+
+  .group-head {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    margin: 30px 0 14px;
+  }
+  .group-head:first-of-type { margin-top: 0; }
+  .group-head h2 { font-size: 19px; margin: 0; }
+  .group-head .need {
+    font-size: 13px; font-weight: 700; color: var(--sub);
+    background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px;
   }
 
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
@@ -56,6 +69,8 @@
   .card.sun .tag { background: #fff6d8; color: #8a6100; }
   .card.human { border-top-color: var(--human); }
   .card.human .tag { background: #ffeef4; color: #a61e4d; }
+  .card.board { border-top-color: var(--board); }
+  .card.board .tag { background: #e6f7f3; color: var(--board-ink); }
 
   .note {
     background: #fff8e6; border: 1px solid #ffe08a; border-radius: 14px;
@@ -76,6 +91,11 @@
     <h1>👀 인간의 감각기관과 마이크로비트</h1>
     <p class="lead">사람은 감각으로 <b>느끼고</b>, 컴퓨터는 숫자로 <b>계산합니다</b>.<br>같은 일을 서로 어떻게 다르게 하는지 직접 확인해 봅시다.</p>
   </header>
+
+  <div class="group-head">
+    <h2>💻 컴퓨터만 있으면 되는 활동</h2>
+    <span class="need">카메라 · 마이크</span>
+  </div>
 
   <div class="cards">
     <a class="card sun" href="ai_light_dark.html">
@@ -107,13 +127,43 @@
     </a>
   </div>
 
+  <div class="group-head">
+    <h2>🔌 마이크로비트가 있어야 하는 활동</h2>
+    <span class="need">보드 · USB 케이블</span>
+  </div>
+
+  <div class="cards">
+    <a class="card board" href="microbit_sensor_explorer.html">
+      <div class="icon">🔬</div>
+      <h2>센서 탐색하기</h2>
+      <p>마이크로비트가 지금 느끼는 값을 실시간으로 봅니다. 기울기(앞뒤·좌우), 가속도(X·Y·Z), 온도, 밝기까지 일곱 가지 값이 숫자와 막대로 나타납니다.</p>
+      <span class="tag">1차시 · 센서가 느끼는 값 관찰</span>
+    </a>
+
+    <a class="card board" href="microbit_ai_learning.html">
+      <div class="icon">🤖</div>
+      <h2>마이크로비트 AI 학습하기</h2>
+      <p>내가 직접 모은 센서 숫자로 AI를 가르칩니다. 예시 모으기 → 학습 → 테스트 → 성적표까지, AI가 배우는 과정을 여섯 단계로 따라가 봅니다.</p>
+      <span class="tag">2차시 · 숫자로 배우는 AI</span>
+    </a>
+  </div>
+
   <div class="note">
     <b>수업 전에 확인해 주세요</b><br>
-    · <b>Chrome 또는 Edge</b> 브라우저에서 열어 주세요.<br>
-    · 앞의 세 앱은 <b>카메라 또는 마이크 허용</b>이 필요합니다. 허용 창이 뜨면 [허용]을 눌러 주세요.<br>
-    · 앞의 세 앱은 <a href="https://teachablemachine.withgoogle.com" target="_blank" rel="noopener">티처블 머신</a>에서 만든 <b>모델 주소</b>가 있어야 합니다. 만드는 방법은 각 앱 안에 적어 두었습니다.<br>
-    · 영상과 소리는 <b>학생 컴퓨터 안에서만</b> 처리되며 어디에도 전송되거나 저장되지 않습니다.<br>
-    · 파일을 더블클릭해서 열면(<code>file:///</code>) 카메라와 마이크가 켜지지 않습니다. 반드시 인터넷 주소로 열어 주세요.
+    · 모든 화면은 <b>Chrome 또는 Edge</b> 브라우저에서만 동작합니다.<br>
+    · 파일을 더블클릭해서 열면(<code>file:///</code>) 카메라·마이크·마이크로비트가 모두 켜지지 않습니다. 반드시 인터넷 주소로 열어 주세요.<br>
+    <br>
+    <b>💻 컴퓨터만 있으면 되는 활동</b><br>
+    · 밝음/어두움, 시끄러움/조용함, 바른 자세는 <b>카메라 또는 마이크 허용</b>이 필요합니다. 허용 창이 뜨면 [허용]을 눌러 주세요.<br>
+    · 이 세 앱은 <a href="https://teachablemachine.withgoogle.com" target="_blank" rel="noopener">티처블 머신</a>에서 만든 <b>모델 주소</b>가 있어야 합니다. 만드는 방법은 각 앱 안에 적어 두었습니다.<br>
+    · <b>컴퓨터는 어떻게 알까?</b> 는 아무 준비물 없이 바로 쓸 수 있습니다.<br>
+    <br>
+    <b>🔌 마이크로비트가 있어야 하는 활동</b><br>
+    · 마이크로비트에 <code>microbit_sensor_observe_code.js</code> 코드를 <b>먼저 넣어 두어야</b> 합니다.
+    코드가 없으면 USB를 꽂아도 값이 하나도 오지 않아 연결이 안 되는 것처럼 보입니다.<br>
+    · 마이크로비트 화면에 <b>물음표(?)</b> 가 흐르면 준비 완료, 연결에 성공하면 <b>웃는 얼굴</b>로 바뀝니다.<br>
+    <br>
+    · 영상과 소리, 센서값은 모두 <b>학생 컴퓨터 안에서만</b> 처리되며 어디에도 전송되거나 저장되지 않습니다.
   </div>
 
   <footer>
