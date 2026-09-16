@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>자세 교정 도우미</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --card-bg: #ffffff;
+    --text: #1f2430;
+    --text-dim: #6b7280;
+    --border: #e3e7ef;
+    --accent: #4f6df5;
+    --good: #16a37a;
+    --bad: #d64545;
+    --warn: #d99a12;
+    --shadow: 0 2px 10px rgba(20,24,40,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161f; --card-bg: #1c1f2b; --text: #eef0f6;
+      --text-dim: #9aa1b4; --border: #2b2f3e; --shadow: 0 2px 10px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161f; --card-bg: #1c1f2b; --text: #eef0f6;
+    --text-dim: #9aa1b4; --border: #2b2f3e; --shadow: 0 2px 10px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", sans-serif;
+    padding: 24px 16px 64px; line-height: 1.5;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  .subtitle { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 20px; }
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow);
+  }
+  .card h2 { font-size: 1rem; margin: 0 0 12px; }
+  .desc { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 12px; }
+  .cam-wrap { display: flex; justify-content: center; margin-bottom: 14px; }
+  #canvas { border-radius: 12px; border: 1px solid var(--border); background: #000; max-width: 100%; }
+  .btn-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .action-btn {
+    padding: 10px 20px; border-radius: 10px; border: none; background: var(--accent);
+    color: white; cursor: pointer; font-size: 0.9rem; font-weight: 700;
+  }
+  .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .action-btn.danger { background: var(--bad); }
+  .status-box {
+    text-align: center; padding: 16px; border-radius: 12px; margin-top: 14px;
+    font-weight: 800; font-size: 1.1rem; transition: all 0.2s;
+  }
+  .status-box.idle { background: rgba(107,114,128,0.12); color: var(--text-dim); }
+  .status-box.good { background: rgba(22,163,122,0.12); color: var(--good); }
+  .status-box.warn { background: rgba(217,154,18,0.15); color: var(--warn); }
+  .status-box.bad { background: rgba(214,69,69,0.15); color: var(--bad); }
+  .predictions { margin-top: 12px; }
+  .pred-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.85rem; }
+  .pred-label { width: 130px; flex-shrink: 0; color: var(--text-dim); }
+  .pred-track { flex: 1; height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
+  .pred-fill { height: 100%; background: var(--accent); transition: width 0.15s; }
+  .pred-pct { width: 44px; text-align: right; font-weight: 700; flex-shrink: 0; }
+  .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; font-size: 0.88rem; }
+  .setting-row input[type="range"] { flex: 1; margin: 0 10px; }
+  .note { color: var(--text-dim); font-size: 0.8rem; margin-top: 6px; }
+  .footer-note { color: var(--text-dim); font-size: 0.8rem; text-align: center; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧍 자세 교정 도우미</h1>
+  <div class="subtitle">티처블 머신 포즈 모델로 자세를 실시간 인식하고, 기울어진 자세가 오래 지속되면 음성으로 알려드려요.</div>
+
+  <div class="card">
+    <h2>⚙️ 민감도 설정</h2>
+    <div class="setting-row">
+      <span>경고 기준 확신도</span>
+      <input type="range" id="confSlider" min="50" max="95" value="80">
+      <span id="confVal">80%</span>
+    </div>
+    <div class="setting-row">
+      <span>지속 시간 (경고까지)</span>
+      <input type="range" id="durSlider" min="1" max="8" value="3">
+      <span id="durVal">3초</span>
+    </div>
+    <div class="note">확신도가 높을수록, 지속 시간이 길수록 잘못된 경고(오작동)가 줄어듭니다. 처음엔 기본값으로 시작해서 상황에 맞게 조절해 보세요.</div>
+  </div>
+
+  <div class="card">
+    <h2>📷 실시간 자세 인식</h2>
+    <div class="cam-wrap"><canvas id="canvas"></canvas></div>
+    <div class="btn-row">
+      <button class="action-btn" id="startBtn">▶️ 시작하기</button>
+      <button class="action-btn danger" id="stopBtn" disabled>⏹ 정지</button>
+    </div>
+    <div class="status-box idle" id="statusBox">대기 중 — 시작하기를 눌러주세요</div>
+    <div class="predictions" id="predContainer"></div>
+  </div>
+
+  <div class="footer-note">※ 이 모델은 "왼쪽으로 기울이기 / 오른쪽으로 기울이기" 두 클래스만 학습되어 있어, 바른 자세일 때도 둘 중 하나로 분류될 수 있어요. 확신도 기준을 높게 잡아두면 애매한 자세에서는 경고가 덜 울립니다. 더 정확히 하려면 "바른자세" 클래스를 추가해 다시 학습하는 걸 추천드려요.</div>
+</div>
+
+<script>
+const MODEL_BASE = "https://teachablemachine.withgoogle.com/models/UxP4dXZgV/";
+let model, webcam, ctx, canvas, maxPredictions;
+let running = false;
+let confThreshold = 80;
+let durThreshold = 3;
+let badSince = null;
+let lastSpokenAt = 0;
+const SPEAK_COOLDOWN_MS = 5000;
+
+document.getElementById("confSlider").oninput = (e) => {
+  confThreshold = parseInt(e.target.value);
+  document.getElementById("confVal").textContent = confThreshold + "%";
+};
+document.getElementById("durSlider").oninput = (e) => {
+  durThreshold = parseInt(e.target.value);
+  document.getElementById("durVal").textContent = durThreshold + "초";
+};
+
+function speak(text) {
+  try {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "ko-KR";
+    utter.rate = 1.0;
+    window.speechSynthesis.speak(utter);
+  } catch (e) { console.error("TTS 오류:", e); }
+}
+
+async function startApp() {
+  document.getElementById("startBtn").disabled = true;
+  document.getElementById("statusBox").className = "status-box idle";
+  document.getElementById("statusBox").textContent = "모델 불러오는 중...";
+
+  try {
+    const modelURL = MODEL_BASE + "model.json";
+    const metadataURL = MODEL_BASE + "metadata.json";
+    model = await tmPose.load(modelURL, metadataURL);
+    maxPredictions = model.getTotalClasses();
+
+    const size = 320;
+    webcam = new tmPose.Webcam(size, size, true);
+    await webcam.setup();
+    await webcam.play();
+
+    canvas = document.getElementById("canvas");
+    canvas.width = size; canvas.height = size;
+    ctx = canvas.getContext("2d");
+
+    const predContainer = document.getElementById("predContainer");
+    predContainer.innerHTML = "";
+    for (let i = 0; i < maxPredictions; i++) {
+      const row = document.createElement("div");
+      row.className = "pred-row";
+      row.innerHTML = `<div class="pred-label" id="lbl-${i}"></div><div class="pred-track"><div class="pred-fill" id="fill-${i}" style="width:0%"></div></div><div class="pred-pct" id="pct-${i}">0%</div>`;
+      predContainer.appendChild(row);
+    }
+
+    running = true;
+    badSince = null;
+    document.getElementById("stopBtn").disabled = false;
+    document.getElementById("statusBox").className = "status-box good";
+    document.getElementById("statusBox").textContent = "인식 중...";
+    window.requestAnimationFrame(loop);
+  } catch (err) {
+    document.getElementById("statusBox").className = "status-box bad";
+    document.getElementById("statusBox").textContent = "모델 로드 실패 — 웹캠 권한 또는 모델 링크를 확인해주세요";
+    document.getElementById("startBtn").disabled = false;
+    console.error(err);
+  }
+}
+
+function stopApp() {
+  running = false;
+  if (webcam) webcam.stop();
+  document.getElementById("startBtn").disabled = false;
+  document.getElementById("stopBtn").disabled = true;
+  document.getElementById("statusBox").className = "status-box idle";
+  document.getElementById("statusBox").textContent = "대기 중 — 시작하기를 눌러주세요";
+  badSince = null;
+}
+
+async function loop() {
+  if (!running) return;
+  webcam.update();
+  await predict();
+  window.requestAnimationFrame(loop);
+}
+
+async function predict() {
+  const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+  const prediction = await model.predict(posenetOutput);
+
+  let topLabel = "";
+  let topProb = 0;
+  prediction.forEach((p, i) => {
+    const pct = Math.round(p.probability * 100);
+    document.getElementById(`lbl-${i}`).textContent = p.className;
+    document.getElementById(`fill-${i}`).style.width = pct + "%";
+    document.getElementById(`pct-${i}`).textContent = pct + "%";
+    if (p.probability > topProb) { topProb = p.probability; topLabel = p.className; }
+  });
+
+  const statusBox = document.getElementById("statusBox");
+  const isTilted = topLabel.includes("왼쪽") || topLabel.includes("오른쪽");
+  const overThreshold = (topProb * 100) >= confThreshold;
+
+  if (isTilted && overThreshold) {
+    if (badSince === null) badSince = Date.now();
+    const elapsedSec = (Date.now() - badSince) / 1000;
+    if (elapsedSec < durThreshold) {
+      statusBox.className = "status-box warn";
+      statusBox.textContent = `${topLabel} 감지됨... (${elapsedSec.toFixed(1)}초 / ${durThreshold}초)`;
+    } else {
+      statusBox.className = "status-box bad";
+      statusBox.textContent = `⚠️ 경고: ${topLabel}`;
+      if (Date.now() - lastSpokenAt > SPEAK_COOLDOWN_MS) {
+        speak("몸을 바로 잡으세요");
+        lastSpokenAt = Date.now();
+      }
+    }
+  } else {
+    badSince = null;
+    statusBox.className = "status-box good";
+    statusBox.textContent = "정상 인식 중";
+  }
+
+  drawPose(pose);
+}
+
+function drawPose(pose) {
+  if (webcam.canvas) {
+    ctx.drawImage(webcam.canvas, 0, 0);
+    if (pose) {
+      const minPartConfidence = 0.5;
+      tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
+      tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
+    }
+  }
+}
+
+document.getElementById("startBtn").onclick = startApp;
+document.getElementById("stopBtn").onclick = stopApp;
+</script>
+</body>
+</html>

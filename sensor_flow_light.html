@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>컴퓨터는 어떻게 알까</title>
+<style>
+  :root {
+    --ink: #2b3445;
+    --sub: #6b7688;
+    --line: #e3e8f0;
+    --card: #ffffff;
+    --bg: #f4f6fb;
+    --accent: #5b6ef5;
+    --sun: #e3b100;
+    --sun-ink: #8a6100;
+    --volt: #f76707;
+    --volt-ink: #b34700;
+    --human: #d6336c;
+    --human-ink: #a61e4d;
+    --good: #22b14c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px 60px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Pretendard", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 22px; }
+  header h1 { font-size: 34px; margin: 0 0 8px; letter-spacing: -0.5px; text-wrap: balance; }
+  header .lead {
+    display: inline-block; background: #fff; border: 2px dashed #c9d2e6;
+    border-radius: 999px; padding: 8px 18px; font-size: 15px; color: var(--sub);
+  }
+
+  .nav-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 18px; }
+  .nav-row a {
+    text-decoration: none; background: #fff; border: 2px solid var(--line);
+    border-radius: 999px; padding: 8px 16px; font-size: 14px; font-weight: 700; color: var(--sub);
+  }
+  .nav-row a.here { border-color: var(--accent); color: var(--accent); background: #f2f4ff; }
+
+  section {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 20px 22px; margin-bottom: 18px; box-shadow: 0 2px 10px rgba(40,55,90,.05);
+  }
+  section > h2 { font-size: 20px; margin: 0 0 4px; }
+  section > .desc { color: var(--sub); font-size: 14px; margin: 0 0 16px; line-height: 1.7; }
+
+  /* ---------- 밝기 조절판 ---------- */
+  .dial {
+    display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+    background: #f6f8fc; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px;
+  }
+  .dial .room {
+    flex: none; width: 128px; height: 128px; border-radius: 14px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border: 2px solid var(--line); transition: background .2s linear, color .2s linear;
+  }
+  .dial .room .icon { font-size: 40px; line-height: 1.1; }
+  .dial .room .word { font-size: 15px; font-weight: 800; margin-top: 4px; }
+  .dial .ctl { flex: 1; min-width: 260px; }
+  .dial label { display: block; font-size: 14px; font-weight: 700; color: var(--sub); margin-bottom: 8px; }
+  input[type=range] { width: 100%; accent-color: var(--sun); }
+  .dial .scale { display: flex; justify-content: space-between; font-size: 12px; color: var(--sub); margin-top: 4px; }
+  .dial .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+  button { font-family: inherit; cursor: pointer; border: none; border-radius: 11px; font-weight: 700; }
+  button:disabled { cursor: not-allowed; opacity: .45; }
+  .btn-ghost { background: #fff; border: 2px solid var(--line); color: var(--sub); font-size: 14px; padding: 9px 15px; }
+  .btn-ghost.on { border-color: var(--accent); color: var(--accent); background: #f2f4ff; }
+  .btn-go {
+    background: var(--accent); color: #fff; font-size: 15px; padding: 10px 18px; box-shadow: 0 3px 0 #4553c9;
+  }
+  .btn-go:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #4553c9; }
+
+  /* ---------- 흐름 트랙 ---------- */
+  .track { margin-top: 20px; }
+  .track-head {
+    display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 800; margin-bottom: 4px;
+  }
+  .track-sub { font-size: 13px; color: var(--sub); margin-bottom: 12px; line-height: 1.6; }
+  .track.human .track-head { color: var(--human-ink); }
+  .track.machine .track-head { color: var(--accent); }
+
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 6px; }
+  .stage {
+    flex: 1 1 0; min-width: 132px;
+    border: 2px solid var(--line); border-radius: 14px; background: #fff;
+    padding: 13px 11px; text-align: center;
+    transition: border-color .2s, box-shadow .2s, transform .2s;
+  }
+  .stage .no {
+    display: inline-block; font-size: 11px; font-weight: 800; color: var(--sub);
+    letter-spacing: .06em; margin-bottom: 5px;
+  }
+  .stage .icon { font-size: 28px; line-height: 1.15; }
+  .stage .name { font-size: 14px; font-weight: 800; margin-top: 4px; line-height: 1.35; }
+  .stage .val {
+    font-size: 19px; font-weight: 800; margin-top: 7px; font-variant-numeric: tabular-nums;
+    min-height: 24px; line-height: 1.2;
+  }
+  .stage .note { font-size: 11.5px; color: var(--sub); margin-top: 5px; line-height: 1.5; }
+  .stage .mini { height: 8px; background: #eaeef6; border-radius: 4px; overflow: hidden; margin-top: 7px; }
+  .stage .mini i { display: block; height: 100%; width: 0; border-radius: 4px; transition: width .2s linear; }
+
+  .stage.lit { transform: translateY(-3px); }
+  .track.machine .stage.lit { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(91,110,245,.13); }
+  .track.human .stage.lit { border-color: var(--human); box-shadow: 0 0 0 4px rgba(214,51,108,.13); }
+
+  .arrow {
+    flex: none; align-self: center; width: 26px; text-align: center;
+    font-size: 17px; color: #c3cbdb; font-weight: 800;
+  }
+  .arrow.lit { color: var(--accent); }
+  .track.human .arrow.lit { color: var(--human); }
+
+  /* 단계별 색 */
+  .s-light .icon, .s-light .val { color: var(--sun-ink); }
+  .s-light .mini i { background: var(--sun); }
+  .s-volt .icon, .s-volt .val { color: var(--volt-ink); }
+  .s-volt .mini i { background: var(--volt); }
+  .s-num .val { color: var(--accent); }
+  .s-num .mini i { background: var(--accent); }
+  .s-brain .icon, .s-brain .val { color: var(--human-ink); }
+  .s-brain .mini i { background: var(--human); }
+
+  .verdict-val.dark { color: var(--volt-ink); }
+  .verdict-val.bright { color: #1f7a33; }
+
+  /* ---------- 비교표 ---------- */
+  .table-box { overflow-x: auto; margin-top: 6px; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 14px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 11px 13px; text-align: left; vertical-align: top; line-height: 1.65; }
+  th { background: #f6f8fc; font-size: 13px; color: var(--sub); }
+  td.row-head { font-weight: 800; color: var(--ink); white-space: nowrap; }
+  .th-human { color: var(--human-ink); }
+  .th-machine { color: var(--accent); }
+
+  /* ---------- 자세한 설명 ---------- */
+  .deep { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .deep-col {
+    border: 1px solid var(--line); border-top: 5px solid var(--accent);
+    border-radius: 14px; padding: 18px 20px; background: #fcfdff;
+  }
+  .deep-col.human { border-top-color: var(--human); }
+  .deep-col h3 { font-size: 16px; margin: 0 0 13px; line-height: 1.55; }
+  .deep-col.machine h3 { color: var(--accent); }
+  .deep-col.human h3 { color: var(--human-ink); }
+
+  .steps { margin: 0; padding-left: 0; list-style: none; counter-reset: st; }
+  .steps li {
+    position: relative; padding-left: 34px; margin-bottom: 13px;
+    font-size: 14px; line-height: 1.8; color: var(--sub); counter-increment: st;
+  }
+  .steps li:last-child { margin-bottom: 0; }
+  .steps li::before {
+    content: counter(st); position: absolute; left: 0; top: 2px;
+    width: 23px; height: 23px; border-radius: 50%;
+    background: #eef1f7; color: var(--sub);
+    font-size: 12px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .deep-col.machine .steps li::before { background: #f2f4ff; color: var(--accent); }
+  .deep-col.human .steps li::before { background: #ffeef4; color: var(--human-ink); }
+  .steps li b { color: var(--ink); }
+
+  .more {
+    margin-top: 15px; border-top: 1px dashed var(--line); padding-top: 13px;
+    font-size: 13px; color: var(--sub); line-height: 1.85;
+  }
+  .more b { color: var(--ink); }
+
+  .key-box {
+    background: #eef1ff; border: 2px solid #c8d0ff; border-radius: 14px;
+    padding: 16px 18px; font-size: 15px; font-weight: 700; color: #3c49b8; line-height: 1.8; margin-top: 16px;
+  }
+  .guide {
+    background: #f6f8fc; border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 18px; font-size: 14px; color: var(--sub); line-height: 1.85; margin-top: 16px;
+  }
+  .guide b { color: var(--ink); }
+  .guide code { background: #eef1f7; padding: 1px 6px; border-radius: 5px; }
+  .guide ul { margin: 8px 0 0; padding-left: 20px; }
+
+  footer {
+    text-align: center; background: #fff8e6; border: 2px solid #ffe08a;
+    border-radius: 16px; padding: 18px; font-size: 16px; font-weight: 700;
+    color: #8a6100; line-height: 1.9;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stage, .arrow, .mini i, .room { transition: none; }
+    .stage.lit { transform: none; }
+  }
+  @media (max-width: 760px) {
+    header h1 { font-size: 25px; }
+    .flow { display: block; }
+    .arrow { width: 100%; padding: 4px 0; transform: rotate(90deg); }
+    .stage { min-width: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>🔬 컴퓨터는 어떻게 알까?</h1>
+    <p class="lead">마이크로비트 <b>빛 센서</b>로 보는, 컴퓨터가 "어둡다"를 알아내는 과정</p>
+  </header>
+
+  <nav class="nav-row">
+    <a href="ai_light_dark.html">🔆 밝음과 어두움</a>
+    <a href="ai_loud_quiet.html">🔊 시끄러움과 조용함</a>
+    <a href="ai_classroom_helper.html">🧍 바른 자세</a>
+    <a class="here" href="sensor_flow_light.html">🔬 컴퓨터는 어떻게 알까?</a>
+  </nav>
+
+  <section>
+    <h2>☀️ 교실 밝기를 직접 바꿔 보세요</h2>
+    <p class="desc">아래 손잡이를 움직이면, 사람과 마이크로비트가 각각 어떤 과정을 거쳐 "밝다·어둡다"를 알아내는지 두 줄로 나란히 보여 줍니다.</p>
+
+    <div class="dial">
+      <div class="room" id="room">
+        <div class="icon" id="room-icon">💡</div>
+        <div class="word" id="room-word">보통이에요</div>
+      </div>
+      <div class="ctl">
+        <label for="lux">교실에 들어오는 빛의 양</label>
+        <input type="range" id="lux" min="0" max="255" step="1" value="150">
+        <div class="scale"><span>🌑 깜깜한 밤</span><span>💡 실내등</span><span>☀️ 창가 햇빛</span></div>
+        <div class="btns">
+          <button type="button" class="btn-go" id="btn-flow">⚡ 신호가 흐르는 과정 보기</button>
+          <button type="button" class="btn-ghost" id="btn-night">🌙 불 끄기</button>
+          <button type="button" class="btn-ghost" id="btn-day">☀️ 창가로 가기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 사람 -->
+    <div class="track human" id="track-human">
+      <div class="track-head">🧑 사람은 이렇게 압니다</div>
+      <div class="track-sub">빛이 눈에 들어와 뇌까지 가는 데 걸리는 시간은 약 0.1초. 우리는 이 과정을 느끼지 못한 채 그냥 "어둡네" 하고 압니다.</div>
+      <div class="flow">
+        <div class="stage s-light" data-i="0">
+          <div class="no">1단계</div>
+          <div class="icon">☀️</div>
+          <div class="name">빛</div>
+          <div class="val" id="h1">–</div>
+          <div class="note">교실의 빛이 눈으로 들어옵니다</div>
+        </div>
+        <div class="arrow" data-a="0">➜</div>
+        <div class="stage s-brain" data-i="1">
+          <div class="no">2단계</div>
+          <div class="icon">👁️</div>
+          <div class="name">눈 (망막)</div>
+          <div class="val" id="h2">–</div>
+          <div class="note">망막의 시각세포가 빛을 받습니다</div>
+        </div>
+        <div class="arrow" data-a="1">➜</div>
+        <div class="stage s-volt" data-i="2">
+          <div class="no">3단계</div>
+          <div class="icon">⚡</div>
+          <div class="name">시신경</div>
+          <div class="val" id="h3">–</div>
+          <div class="note">빛이 전기 신호로 바뀌어 전달됩니다</div>
+        </div>
+        <div class="arrow" data-a="2">➜</div>
+        <div class="stage s-brain" data-i="3">
+          <div class="no">4단계</div>
+          <div class="icon">🧠</div>
+          <div class="name">뇌에서 종합</div>
+          <div class="val" id="h4">–</div>
+          <div class="note">지금까지의 경험과 함께 판단합니다</div>
+        </div>
+        <div class="arrow" data-a="3">➜</div>
+        <div class="stage s-brain" data-i="4">
+          <div class="no">5단계</div>
+          <div class="icon">💭</div>
+          <div class="name">느낌</div>
+          <div class="val" id="h5">–</div>
+          <div class="note">숫자가 아니라 "느낌"으로 압니다</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 마이크로비트 -->
+    <div class="track machine" id="track-machine">
+      <div class="track-head">🤖 마이크로비트는 이렇게 압니다</div>
+      <div class="track-sub">마이크로비트에는 빛 센서가 따로 없습니다. 놀랍게도 <b>앞면의 LED 25개를 거꾸로 써서</b> 빛을 잽니다. LED는 전기를 주면 빛을 내지만, 반대로 빛을 받으면 아주 작은 전기가 생기기 때문입니다.</div>
+      <div class="flow">
+        <div class="stage s-light" data-i="0">
+          <div class="no">1단계</div>
+          <div class="icon">☀️</div>
+          <div class="name">빛</div>
+          <div class="val" id="m1">–</div>
+          <div class="mini"><i id="m1-bar"></i></div>
+          <div class="note">같은 빛이 LED 화면에 닿습니다</div>
+        </div>
+        <div class="arrow" data-a="0">➜</div>
+        <div class="stage s-volt" data-i="1">
+          <div class="no">2단계</div>
+          <div class="icon">🔲</div>
+          <div class="name">LED가 빛을 받음</div>
+          <div class="val" id="m2">–</div>
+          <div class="mini"><i id="m2-bar"></i></div>
+          <div class="note">빛이 셀수록 전기가 빨리 빠져나갑니다</div>
+        </div>
+        <div class="arrow" data-a="1">➜</div>
+        <div class="stage s-num" data-i="2">
+          <div class="no">3단계</div>
+          <div class="icon">🔢</div>
+          <div class="name">숫자로 바꾸기</div>
+          <div class="val" id="m3">–</div>
+          <div class="mini"><i id="m3-bar"></i></div>
+          <div class="note">0~255 사이의 숫자 <b>딱 하나</b>가 됩니다</div>
+        </div>
+        <div class="arrow" data-a="2">➜</div>
+        <div class="stage s-num" data-i="3">
+          <div class="no">4단계</div>
+          <div class="icon">⚖️</div>
+          <div class="name">기준과 비교</div>
+          <div class="val" id="m4">–</div>
+          <div class="note" id="m4-note">사람이 미리 정해 준 기준과 견줍니다</div>
+        </div>
+        <div class="arrow" data-a="3">➜</div>
+        <div class="stage" data-i="4">
+          <div class="no">5단계</div>
+          <div class="icon" id="m5-icon">💡</div>
+          <div class="name">정해진 행동</div>
+          <div class="val verdict-val" id="m5">–</div>
+          <div class="note">배운 대로만 움직입니다</div>
+        </div>
+      </div>
+
+      <div class="dial" style="margin-top:14px">
+        <div class="ctl" style="min-width:100%">
+          <label for="th">4단계에서 쓰는 기준 숫자 — 이 값보다 작으면 "어둡다"고 정합니다</label>
+          <input type="range" id="th" min="0" max="255" step="1" value="60">
+          <div class="scale"><span>0</span><span id="th-show">60</span><span>255</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>🔎 조금 더 자세히</h2>
+    <p class="desc">위 그림의 각 단계에서 실제로 무슨 일이 일어나는지 살펴봅시다.</p>
+
+    <div class="deep">
+      <article class="deep-col machine">
+        <h3>🤖 마이크로비트 빛 센서는 어떻게 빛을 잴까?</h3>
+        <ol class="steps">
+          <li><b>LED를 거꾸로 씁니다.</b> 마이크로비트에는 빛 센서가 따로 달려 있지 않습니다. 앞면의 <b>LED 25개</b>가 그 일을 대신합니다. LED는 전기를 주면 빛을 내는 부품인데, 반대로 <b>빛을 받으면 아주 작은 전기가 생기는</b> 성질도 함께 가지고 있기 때문입니다.</li>
+          <li><b>LED에 전기를 잠깐 채웁니다.</b> 작은 물통에 물을 가득 채워 두는 것과 비슷합니다.</li>
+          <li><b>전기가 빠지는 시간을 잽니다.</b> 전기를 끊고 기다리면, 빛을 받는 만큼 전기가 새어 나갑니다. <b>빛이 셀수록 빨리 빠지고, 어두울수록 천천히 빠집니다.</b> 물통에 난 구멍이 클수록 물이 빨리 빠지는 것과 같습니다.</li>
+          <li><b>시간을 숫자로 바꿉니다.</b> 빠지는 데 걸린 시간을 <b>0~255 사이의 숫자 하나</b>로 바꿉니다. 시간이 짧으면(밝으면) 큰 숫자, 길면(어두우면) 작은 숫자가 됩니다.</li>
+          <li><b>프로그램이 비교합니다.</b> <code>input.lightLevel()</code> 이 그 숫자를 알려 주면, 프로그램은 <b>사람이 미리 적어 준 기준</b>과 견주어 "어둡다·밝다"를 정합니다. 여기에는 어떤 느낌도, 경험도 들어가지 않습니다.</li>
+        </ol>
+        <div class="more">
+          <b>더 알아보기</b><br>
+          이 과정은 1초에 여러 번 아주 빠르게 되풀이됩니다. 그동안 <b>LED 화면을 잠깐 빌려 쓰기</b> 때문에, 화면에 그림이 켜져 있으면 밝기 값이 실제보다 조금 낮게 나옵니다.
+        </div>
+      </article>
+
+      <article class="deep-col human">
+        <h3>🧑 우리 뇌는 어떻게 "밝다·어둡다"를 알까?</h3>
+        <ol class="steps">
+          <li><b>빛이 눈으로 들어옵니다.</b> 각막과 수정체를 지나 눈 안쪽의 <b>망막</b>에 상이 맺힙니다. 이때 <b>홍채</b>가 동공 크기를 먼저 바꿔 들어오는 빛의 양을 조절합니다. 밝으면 동공을 작게, 어두우면 크게 엽니다.</li>
+          <li><b>망막의 시각세포가 빛을 받습니다.</b> 망막에는 두 종류의 시각세포가 있습니다. <b>간상세포</b>는 어두운 곳에서 밝기를 담당하지만 색은 구별하지 못하고, <b>원추세포</b>는 밝은 곳에서 색을 담당합니다. 어두운 방에서 물건의 색이 잘 안 보이는 것은 이 때문입니다.</li>
+          <li><b>빛이 전기 신호로 바뀝니다.</b> 시각세포 안의 <b>로돕신</b>이라는 물질이 빛을 받으면 모양이 바뀌고, 이 변화가 전기 신호를 만들어 냅니다.</li>
+          <li><b>신호가 뇌로 갑니다.</b> <b>시신경</b>을 타고 머리 뒤쪽의 시각 영역까지 전달됩니다. 여기까지 걸리는 시간은 약 0.1초입니다.</li>
+          <li><b>뇌가 판단합니다.</b> 여기가 컴퓨터와 가장 다른 점입니다. 뇌는 빛의 양만 보지 않고, <b>주변과 얼마나 차이가 나는지</b>, 그리고 <b>조금 전까지 어땠는지</b>와 견주어 "밝다·어둡다"를 정합니다. 그래서 같은 밝기라도 상황에 따라 다르게 느낍니다.</li>
+        </ol>
+        <div class="more">
+          <b>더 알아보기 — 깜깜한 방에 들어가면</b><br>
+          처음엔 아무것도 안 보이다가 점점 보이는 것을 <b>암순응</b>이라고 합니다. 밝은 곳에서 이미 분해되어 버린 로돕신이 다시 만들어지는 데 시간이 걸리기 때문이고, 완전히 적응하는 데에는 20~30분쯤 걸립니다. 마이크로비트는 이런 적응을 하지 못하고, 언제나 똑같은 방식으로만 잽니다.
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <h2>🔍 무엇이 다를까?</h2>
+    <p class="desc">두 줄을 나란히 놓고 보면, 같은 빛을 두고도 사람과 컴퓨터가 전혀 다른 방식으로 답을 낸다는 것이 보입니다.</p>
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr><th>비교할 점</th><th class="th-human">🧑 사람</th><th class="th-machine">🤖 마이크로비트</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="row-head">쓰는 정보</td>
+            <td>눈 + 지금까지의 경험 + 다른 감각까지 함께</td>
+            <td>빛의 양 <b>한 가지</b>만</td>
+          </tr>
+          <tr>
+            <td class="row-head">답의 모습</td>
+            <td>"좀 어둡네" 같은 <b>느낌</b></td>
+            <td>0~255 사이의 <b>숫자 하나</b></td>
+          </tr>
+          <tr>
+            <td class="row-head">기준을 정하는 이</td>
+            <td>스스로, 상황에 따라 달라짐</td>
+            <td>사람이 프로그램에 미리 적어 준 값</td>
+          </tr>
+          <tr>
+            <td class="row-head">눈이 부신 곳에 가면</td>
+            <td>눈이 점점 적응해서 다시 잘 보임</td>
+            <td>적응하지 못하고 계속 같은 방식으로만 잼</td>
+          </tr>
+          <tr>
+            <td class="row-head">모르는 상황을 만나면</td>
+            <td>"어? 이건 뭔가 이상한데?" 하고 알아챔</td>
+            <td>그래도 숫자를 내고, 기준과 비교해 둘 중 하나로 답함</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="key-box">
+      💡 한 문장으로 정리하면<br>
+      <b>사람은 여러 감각을 몸으로 직접 느껴서 판단하지만, 컴퓨터는 센서로 잰 값을 숫자 하나로 바꾼 뒤, 사람이 정해 준 기준과 비교할 뿐입니다.</b>
+    </div>
+
+    <div class="guide">
+      <b>직접 확인해 보기</b>
+      <ul>
+        <li>기준 숫자를 <code>10</code> 으로 낮춰 보세요. 꽤 어두운데도 마이크로비트는 "밝다"고 합니다. <b>기준을 누가 정했는지</b> 생각해 봅시다.</li>
+        <li>마이크로비트에 <code>microbit_sensor_observe_code.js</code> 를 넣으면, 위 3단계의 숫자를 <b>실제로</b> 볼 수 있습니다.</li>
+        <li>빛 센서는 LED 화면을 잠깐 빌려 씁니다. 그래서 화면에 그림이 켜져 있으면 밝기 값이 조금 낮게 나옵니다.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    🤔 사람은 깜깜한 방에 들어가면 처음엔 안 보이다가 점점 보이게 됩니다.<br>
+    마이크로비트도 그럴까요? 그렇게 만들려면 무엇이 더 필요할까요?
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+var LIGHT_MAX = 255;
+
+function $(id) { return document.getElementById(id); }
+
+var luxEl = $("lux"), thEl = $("th"), thShow = $("th-show");
+var roomEl = $("room"), roomIcon = $("room-icon"), roomWord = $("room-word");
+
+/* 밝기를 사람이 쓰는 말로 옮겨 주는 표.
+   숫자 하나를 말로 바꾸는 이 과정이 바로 "기준을 정하는 일" 이다. */
+var LEVELS = [
+  { max: 15,  word: "깜깜해요",    icon: "🌑", bg: "#2b3350", fg: "#dfe4f5" },
+  { max: 60,  word: "어두워요",    icon: "🌙", bg: "#4a5273", fg: "#eef1ff" },
+  { max: 130, word: "보통이에요",  icon: "💡", bg: "#fff6d8", fg: "#8a6100" },
+  { max: 200, word: "밝아요",      icon: "🔆", bg: "#ffeeae", fg: "#7a5400" },
+  { max: 255, word: "아주 밝아요", icon: "☀️", bg: "#ffe27a", fg: "#6b4a00" }
+];
+function levelOf(v) {
+  for (var i = 0; i < LEVELS.length; i++) if (v <= LEVELS[i].max) return LEVELS[i];
+  return LEVELS[LEVELS.length - 1];
+}
+
+/* 사람이 빛의 세기를 말할 때 쓰는 표현 */
+function humanWords(v) {
+  if (v <= 15)  return { eye: "동공이 커짐", nerve: "약한 신호", brain: "\"거의 안 보여\"", feel: "깜깜하다" };
+  if (v <= 60)  return { eye: "동공이 조금 커짐", nerve: "작은 신호", brain: "\"침침하네\"", feel: "어둡다" };
+  if (v <= 130) return { eye: "편안한 상태", nerve: "보통 신호", brain: "\"잘 보이네\"", feel: "적당하다" };
+  if (v <= 200) return { eye: "동공이 조금 작아짐", nerve: "강한 신호", brain: "\"환하네\"", feel: "밝다" };
+  return { eye: "동공이 작아짐", nerve: "아주 강한 신호", brain: "\"눈이 부셔\"", feel: "너무 밝다" };
+}
+
+function pct(v) { return Math.round(v / LIGHT_MAX * 100) + "%"; }
+
+function render() {
+  var v = parseInt(luxEl.value, 10);
+  var th = parseInt(thEl.value, 10);
+  var lv = levelOf(v);
+  var hw = humanWords(v);
+
+  thShow.textContent = th;
+
+  // 교실 그림
+  roomEl.style.background = lv.bg;
+  roomEl.style.color = lv.fg;
+  roomIcon.textContent = lv.icon;
+  roomWord.textContent = lv.word;
+
+  // ---- 사람 줄 : 숫자가 아니라 말로 나타낸다 ----
+  $("h1").textContent = lv.icon;
+  $("h2").textContent = hw.eye;
+  $("h3").textContent = hw.nerve;
+  $("h4").textContent = hw.brain;
+  $("h5").textContent = hw.feel;
+
+  // ---- 마이크로비트 줄 : 끝까지 숫자로 간다 ----
+  $("m1").textContent = lv.icon;
+  $("m1-bar").style.width = pct(v);
+
+  // 빛이 셀수록 전기가 빨리 빠져나간다 (빠짐 = 밝음)
+  $("m2").textContent = v >= 170 ? "아주 빨리 빠짐" : (v >= 90 ? "빨리 빠짐" : (v >= 30 ? "천천히 빠짐" : "거의 안 빠짐"));
+  $("m2-bar").style.width = pct(v);
+
+  $("m3").textContent = v;
+  $("m3-bar").style.width = pct(v);
+
+  var isDark = v < th;
+  $("m4").textContent = v + (isDark ? " < " : " ≥ ") + th;
+  $("m4-note").textContent = isDark
+    ? "기준보다 작으므로 \"어둡다\""
+    : "기준보다 크므로 \"밝다\"";
+
+  var m5 = $("m5");
+  m5.textContent = isDark ? "불 켜기" : "그대로 두기";
+  m5.className = "val verdict-val " + (isDark ? "dark" : "bright");
+  $("m5-icon").textContent = isDark ? "💡" : "😴";
+}
+
+/* 신호가 한 단계씩 흘러가는 모습을 보여 준다 */
+var flowTimers = [];
+function playFlow() {
+  clearFlow();
+  var tracks = [$("track-human"), $("track-machine")];
+  var STEP = 420;
+  for (var t = 0; t < tracks.length; t++) {
+    (function (track) {
+      var stages = track.querySelectorAll(".stage");
+      var arrows = track.querySelectorAll(".arrow");
+      for (var i = 0; i < stages.length; i++) {
+        (function (stage, i) {
+          flowTimers.push(setTimeout(function () {
+            stage.classList.add("lit");
+            if (arrows[i]) arrows[i].classList.add("lit");
+          }, i * STEP));
+          flowTimers.push(setTimeout(function () {
+            stage.classList.remove("lit");
+            if (arrows[i]) arrows[i].classList.remove("lit");
+          }, i * STEP + STEP + 260));
+        })(stages[i], i);
+      }
+    })(tracks[t]);
+  }
+}
+function clearFlow() {
+  for (var i = 0; i < flowTimers.length; i++) clearTimeout(flowTimers[i]);
+  flowTimers = [];
+  var lit = document.querySelectorAll(".lit");
+  for (var j = 0; j < lit.length; j++) lit[j].classList.remove("lit");
+}
+
+/* 손잡이를 목표 값까지 부드럽게 옮겨 준다 (갑자기 바뀌면 과정이 안 보인다) */
+var glideTimer = null;
+function glideTo(target) {
+  if (glideTimer) clearInterval(glideTimer);
+  glideTimer = setInterval(function () {
+    var cur = parseInt(luxEl.value, 10);
+    if (cur === target) { clearInterval(glideTimer); glideTimer = null; return; }
+    luxEl.value = cur + (target > cur ? Math.min(6, target - cur) : -Math.min(6, cur - target));
+    render();
+  }, 16);
+}
+
+luxEl.addEventListener("input", render);
+thEl.addEventListener("input", render);
+$("btn-flow").addEventListener("click", playFlow);
+$("btn-night").addEventListener("click", function () { glideTo(8); playFlow(); });
+$("btn-day").addEventListener("click", function () { glideTo(235); playFlow(); });
+
+render();
+</script>
+</body>
+</html>

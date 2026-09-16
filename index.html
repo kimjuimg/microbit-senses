@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>감각기관과 마이크로비트</title>
+<style>
+  :root {
+    --ink: #2b3445;
+    --sub: #6b7688;
+    --line: #e3e8f0;
+    --card: #ffffff;
+    --bg: #f4f6fb;
+    --accent: #5b6ef5;
+    --sun: #e3b100;
+    --human: #d6336c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 16px 60px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Pretendard", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 { font-size: 34px; margin: 0 0 10px; letter-spacing: -0.5px; text-wrap: balance; }
+  header .lead {
+    display: inline-block; background: #fff; border: 2px dashed #c9d2e6;
+    border-radius: 999px; padding: 9px 20px; font-size: 15px; color: var(--sub); line-height: 1.6;
+  }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .card {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--card); border: 1px solid var(--line); border-top: 5px solid var(--accent);
+    border-radius: 16px; padding: 22px 22px 20px;
+    box-shadow: 0 2px 10px rgba(40,55,90,.05);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .card:hover, .card:focus-visible {
+    transform: translateY(-3px); box-shadow: 0 8px 20px rgba(40,55,90,.11); outline: none;
+  }
+  .card:focus-visible { border-color: var(--accent); }
+  .card .icon { font-size: 40px; line-height: 1.1; }
+  .card h2 { font-size: 19px; margin: 10px 0 6px; }
+  .card p { font-size: 14px; color: var(--sub); margin: 0; line-height: 1.75; }
+  .card .tag {
+    display: inline-block; margin-top: 12px; font-size: 12.5px; font-weight: 700;
+    border-radius: 999px; padding: 5px 12px; background: #f2f4ff; color: var(--accent);
+  }
+  .card.sun { border-top-color: var(--sun); }
+  .card.sun .tag { background: #fff6d8; color: #8a6100; }
+  .card.human { border-top-color: var(--human); }
+  .card.human .tag { background: #ffeef4; color: #a61e4d; }
+
+  .note {
+    background: #fff8e6; border: 1px solid #ffe08a; border-radius: 14px;
+    padding: 16px 18px; font-size: 14px; line-height: 1.85; color: #8a6100; margin-top: 22px;
+  }
+  .note b { color: #7a5400; }
+  .note code { background: #fff1c9; padding: 1px 6px; border-radius: 5px; }
+
+  footer {
+    text-align: center; font-size: 13px; color: var(--sub); margin-top: 26px; line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>👀 인간의 감각기관과 마이크로비트</h1>
+    <p class="lead">사람은 감각으로 <b>느끼고</b>, 컴퓨터는 숫자로 <b>계산합니다</b>.<br>같은 일을 서로 어떻게 다르게 하는지 직접 확인해 봅시다.</p>
+  </header>
+
+  <div class="cards">
+    <a class="card sun" href="ai_light_dark.html">
+      <div class="icon">🔆</div>
+      <h2>밝음과 어두움</h2>
+      <p>내가 가르친 AI가 카메라를 보고 교실이 밝은지 어두운지 알려 줍니다. 어두워지면 경고음이 울립니다.</p>
+      <span class="tag">눈 · 티처블 머신 이미지 모델</span>
+    </a>
+
+    <a class="card" href="ai_loud_quiet.html">
+      <div class="icon">🔊</div>
+      <h2>시끄러움과 조용함</h2>
+      <p>내가 가르친 AI가 교실 소리를 듣고 시끄러운지 조용한지 알려 줍니다. AI가 소리를 어떤 그림으로 보는지도 함께 보여 줍니다.</p>
+      <span class="tag">귀 · 티처블 머신 오디오 모델</span>
+    </a>
+
+    <a class="card" href="ai_classroom_helper.html">
+      <div class="icon">🧍</div>
+      <h2>바른 자세</h2>
+      <p>내가 가르친 AI가 앉은 자세를 보고 바르게 앉으라고 알려 줍니다. 자세가 흐트러지면 경고음이 울립니다.</p>
+      <span class="tag">몸의 감각 · 티처블 머신 포즈 모델</span>
+    </a>
+
+    <a class="card human" href="sensor_flow_light.html">
+      <div class="icon">🔬</div>
+      <h2>컴퓨터는 어떻게 알까?</h2>
+      <p>마이크로비트 빛 센서를 예로, 빛이 숫자가 되어 판단에 이르는 과정을 사람의 눈과 나란히 놓고 보여 줍니다.</p>
+      <span class="tag">사람과 컴퓨터의 차이 · 설명 자료</span>
+    </a>
+  </div>
+
+  <div class="note">
+    <b>수업 전에 확인해 주세요</b><br>
+    · <b>Chrome 또는 Edge</b> 브라우저에서 열어 주세요.<br>
+    · 앞의 세 앱은 <b>카메라 또는 마이크 허용</b>이 필요합니다. 허용 창이 뜨면 [허용]을 눌러 주세요.<br>
+    · 앞의 세 앱은 <a href="https://teachablemachine.withgoogle.com" target="_blank" rel="noopener">티처블 머신</a>에서 만든 <b>모델 주소</b>가 있어야 합니다. 만드는 방법은 각 앱 안에 적어 두었습니다.<br>
+    · 영상과 소리는 <b>학생 컴퓨터 안에서만</b> 처리되며 어디에도 전송되거나 저장되지 않습니다.<br>
+    · 파일을 더블클릭해서 열면(<code>file:///</code>) 카메라와 마이크가 켜지지 않습니다. 반드시 인터넷 주소로 열어 주세요.
+  </div>
+
+  <footer>
+    초등 실과 · 인간의 감각기관과 마이크로비트 수업 자료
+  </footer>
+</div>
+</body>
+</html>

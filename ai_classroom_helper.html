@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 자세 도우미</title>
+<style>
+  :root {
+    --ink: #2b3445;
+    --sub: #6b7688;
+    --line: #e3e8f0;
+    --card: #ffffff;
+    --bg: #f4f6fb;
+    --accent: #5b6ef5;
+    --good: #22b14c;
+    --bad: #f76707;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px 60px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Pretendard", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 22px; }
+  header h1 { font-size: 34px; margin: 0 0 8px; letter-spacing: -0.5px; }
+  header .lead {
+    display: inline-block;
+    background: #fff;
+    border: 2px dashed #c9d2e6;
+    border-radius: 999px;
+    padding: 8px 18px;
+    font-size: 15px;
+    color: var(--sub);
+  }
+
+  section {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    box-shadow: 0 2px 10px rgba(40,55,90,.05);
+  }
+  section > h2 { font-size: 20px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
+  section > .desc { color: var(--sub); font-size: 14px; margin: 0 0 16px; line-height: 1.7; }
+
+  button { font-family: inherit; cursor: pointer; border: none; border-radius: 12px; font-weight: 700; }
+  button:disabled { cursor: not-allowed; opacity: .45; }
+  .btn-go {
+    background: var(--accent); color: #fff; font-size: 17px;
+    padding: 14px 24px; box-shadow: 0 4px 0 #4553c9;
+  }
+  .btn-go:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #4553c9; }
+  .btn-ghost { background: #fff; border: 2px solid var(--line); color: var(--sub); font-size: 15px; padding: 12px 20px; }
+  .btn-test { padding: 8px 14px; font-size: 14px; border-radius: 10px; cursor: pointer; }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .url-input {
+    flex: 1; min-width: 280px; padding: 13px 15px;
+    border: 2px solid var(--line); border-radius: 12px;
+    font-size: 15px; font-family: inherit; color: var(--ink);
+  }
+  .url-input:focus { outline: none; border-color: var(--accent); }
+
+  .state { font-size: 15px; font-weight: 700; color: var(--sub); margin-bottom: 14px; }
+  .state.ok { color: #1f9d3c; }
+  .state.bad { color: #e03131; }
+
+  .body-row { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+  .view { flex: none; }
+  .view canvas { border-radius: 14px; border: 2px solid var(--line); display: block; background: #eef1f7; }
+  .panel { flex: 1; min-width: 280px; }
+
+  /* 판정 배너 */
+  .verdict {
+    display: none;
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .verdict.on { display: block; }
+  .verdict .big { font-size: 34px; font-weight: 800; line-height: 1.25; }
+  .verdict .msg { font-size: 17px; font-weight: 700; margin-top: 6px; }
+  .verdict.good { background: #e6fbea; color: #1f7a33; border: 2px solid #9ae0ae; }
+  .verdict.bad  { background: #fff1e6; color: #b34700; border: 2px solid #ffc09a; animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: scale(1.02); } }
+
+  /* 확률 막대 */
+  .pbar-item { margin-bottom: 10px; }
+  .pbar-label { display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .pbar-track { height: 16px; background: #eaeef6; border-radius: 8px; overflow: hidden; }
+  .pbar-fill { height: 100%; width: 0; background: #c3cbdb; border-radius: 8px; transition: width .15s linear; }
+  .pbar-item.top .pbar-fill { background: var(--good); }
+  .pbar-item.top.alert .pbar-fill { background: var(--bad); }
+  .pbar-item.top .pbar-label { color: #1f7a33; }
+  .pbar-item.top.alert .pbar-label { color: #b34700; }
+
+  /* 바른 자세 유지 시간 */
+  .streak { font-size: 14px; color: var(--sub); font-weight: 700; margin-top: 4px; }
+  .streak b { color: #1f7a33; font-size: 17px; }
+
+  /* 클래스 설정 */
+  .setup { margin-top: 16px; border-top: 1px dashed var(--line); padding-top: 14px; }
+  .setup h3 { font-size: 15px; margin: 0 0 4px; }
+  .setup .sub { font-size: 13px; color: var(--sub); margin-bottom: 10px; line-height: 1.6; }
+  .cls-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; flex-wrap: wrap; }
+  .cls-name { flex: 1; min-width: 120px; font-weight: 700; font-size: 15px; }
+  .toggle {
+    border: 2px solid var(--line); background: #fff; color: var(--sub);
+    border-radius: 999px; padding: 8px 14px; font-size: 14px;
+  }
+  .toggle.good { border-color: #9ae0ae; background: #f2fcf5; color: #1f7a33; }
+  .toggle.alert { border-color: #ffc09a; background: #fff6ef; color: #b34700; }
+
+  .opt-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; font-size: 14px; color: var(--sub); }
+  .opt-row input[type=text] {
+    flex: 1; min-width: 200px; padding: 10px 12px; border: 2px solid var(--line);
+    border-radius: 10px; font-family: inherit; font-size: 14px; color: var(--ink);
+  }
+  .opt-row input[type=number] {
+    width: 70px; padding: 10px; border: 2px solid var(--line);
+    border-radius: 10px; font-family: inherit; font-size: 14px; text-align: center;
+  }
+  .opt-row label { display: flex; align-items: center; gap: 6px; }
+
+  .guide {
+    background: #f6f8fc; border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 18px; font-size: 14px; color: var(--sub); line-height: 1.85; margin-top: 16px;
+  }
+  .guide b { color: var(--ink); }
+  .guide code { background: #eef1f7; padding: 1px 6px; border-radius: 5px; }
+  .guide ol { margin: 8px 0 0; padding-left: 20px; }
+
+  .warn-box {
+    background: #fff8e6; border: 1px solid #ffe08a; border-radius: 12px;
+    padding: 14px 16px; font-size: 14px; line-height: 1.75; color: #8a6100;
+  }
+  .warn-box b { color: #7a5400; }
+  .warn-box code { background: #fff1c9; padding: 1px 6px; border-radius: 5px; }
+
+  .nav-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 18px; }
+  .nav-row a {
+    text-decoration: none; background: #fff; border: 2px solid var(--line);
+    border-radius: 999px; padding: 8px 16px; font-size: 14px; font-weight: 700; color: var(--sub);
+  }
+  .nav-row a.here { border-color: var(--accent); color: var(--accent); background: #f2f4ff; }
+
+  footer {
+    text-align: center; background: #eef1ff; border: 2px solid #c8d0ff;
+    border-radius: 16px; padding: 18px; font-size: 16px; font-weight: 700;
+    color: #3c49b8; line-height: 1.7;
+  }
+
+  @media (max-width: 760px) {
+    header h1 { font-size: 26px; }
+    .verdict .big { font-size: 27px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>🧍 AI 자세 도우미</h1>
+    <p class="lead">내가 가르친 AI가 앉은 자세를 보고 바르게 앉으라고 알려 줍니다 🪑</p>
+  </header>
+
+  <nav class="nav-row">
+    <a href="ai_light_dark.html">🔆 밝음과 어두움</a>
+    <a href="ai_loud_quiet.html">🔊 시끄러움과 조용함</a>
+    <a class="here" href="ai_classroom_helper.html">🧍 바른 자세</a>
+    <a href="sensor_flow_light.html">🔬 컴퓨터는 어떻게 알까?</a>
+  </nav>
+
+  <section>
+    <h2>🎥 자세 확인하기</h2>
+    <p class="desc">티처블 머신에서 만든 <b>포즈 모델</b>의 주소를 붙여넣고 [시작]을 누르세요. 카메라 화면 위에 AI가 보는 관절과 뼈대가 함께 그려집니다.</p>
+    <div id="mod-pose"></div>
+
+    <div class="warn-box" style="margin-top:16px">
+      <b>준비물 네 가지</b><br>
+      ① <b>인터넷 연결</b> — 티처블 머신 모델은 구글 서버에서 내려받습니다.<br>
+      ② <b>카메라 허용</b> — 허용 창이 뜨면 [허용]을 눌러 주세요.<br>
+      ③ <b>스피커 켜기</b> — 자세가 흐트러지면 경고음이 울립니다. 아래 [🔊 소리 확인]으로 미리 들어 보세요.<br>
+      ④ <b><code>https://</code> 주소로 열기</b> — 파일을 더블클릭해서 열면(<code>file:///</code>) 카메라가 켜지지 않습니다.
+      인터넷 주소로 열거나, 수업 서버를 켜고 <code>https://localhost:9443/ai_classroom_helper.html</code> 로 여세요.
+    </div>
+
+    <div class="guide">
+      <b>포즈 모델 만드는 법</b>
+      <ol>
+        <li><a href="https://teachablemachine.withgoogle.com" target="_blank" rel="noopener">teachablemachine.withgoogle.com</a> → <b>포즈 프로젝트</b> 선택</li>
+        <li>클래스 이름을 <code>바른 자세</code>, <code>구부정한 자세</code> 로 바꾸기</li>
+        <li>의자에 앉아 허리를 편 자세를 여러 각도·여러 사람으로 촬영 (200장 이상 권장)</li>
+        <li>등을 굽히거나 엎드리거나 턱을 괸 자세도 같은 만큼 촬영</li>
+        <li>[모델 학습시키기] → [모델 내보내기] → <b>업로드(공유 가능한 링크)</b> → 나온 주소를 위 칸에 붙여넣기</li>
+      </ol>
+      💡 상반신이 다 보이도록 카메라에서 한 걸음 떨어져 앉으면 훨씬 잘 맞힙니다.<br>
+      💡 여러 학생이 쓸 거라면 <b>여러 사람의 자세</b>를 찍어서 학습시켜야 합니다. 한 사람만 찍으면 그 사람만 잘 맞힙니다.
+    </div>
+  </section>
+
+  <footer>
+    🤔 AI가 틀리게 판단한 적이 있나요?<br>
+    어떤 자세를 더 가르쳐 주면 좋아질까요?
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ===================== 설정 ===================== */
+var LIB_TFJS = "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js";
+var LIB_POSE = "https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js";
+var VIEW_W = 360, VIEW_H = 360;
+var STORE_KEY = "ai-posture-helper";
+
+/* 라이브러리는 [시작]을 누른 순간에만 내려받는다 */
+function loadScriptOnce(src) {
+  return new Promise(function (resolve, reject) {
+    var found = document.querySelector("script[data-lib='" + src + "']");
+    if (found) {
+      if (found.getAttribute("data-loaded")) { resolve(); return; }
+      found.addEventListener("load", function () { resolve(); });
+      found.addEventListener("error", function () { reject(new Error("load")); });
+      return;
+    }
+    var el = document.createElement("script");
+    el.setAttribute("data-lib", src);
+    el.src = src;
+    el.onload = function () { el.setAttribute("data-loaded", "1"); resolve(); };
+    el.onerror = function () { reject(new Error("load")); };
+    document.head.appendChild(el);
+  });
+}
+
+/* 붙여넣는 주소 형태가 제각각이라 뒤에 model.json 을 붙일 수 있는 모양으로 맞춘다 */
+function modelBase(raw) {
+  var u = (raw || "").trim();
+  if (!u) return "";
+  u = u.replace(/model\.json$/i, "").replace(/metadata\.json$/i, "");
+  if (u.charAt(u.length - 1) !== "/") u += "/";
+  return u;
+}
+
+/* 알림용 짧은 소리 (별도 파일 없이 만들어 낸다) */
+var audioCtx = null;
+
+/* 브라우저는 사용자가 한 번 클릭하기 전에는 소리를 막아 둔다.
+   그래서 버튼을 누르는 순간에 오디오를 깨워 놓아야 나중에 경고음이 난다. */
+function wakeAudio() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  } catch (e) {}
+}
+
+/* 음 하나를 정해진 시각에 울린다 */
+function tone(delay, freq, dur) {
+  var t0 = audioCtx.currentTime + delay;
+  var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+  osc.type = "square";
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(0.28, t0 + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.02);
+}
+
+/* 경고음 : 삐- 삐- 두 번 */
+function beep() {
+  try {
+    wakeAudio();
+    if (!audioCtx) return;
+    tone(0, 880, 0.18);
+    tone(0.24, 660, 0.30);
+  } catch (e) {}
+}
+
+/* ===================== 자세 도우미 ===================== */
+function Helper(holderId) {
+  this.holder = document.getElementById(holderId);
+  this.cfg = { url: "", message: "허리를 펴고 바르게 앉아 주세요 🪑", hold: 3, sound: true, repeat: 4, alerts: {} };
+  this.loadCfg();
+
+  this.running = false;
+  this.loading = false;
+  this.model = null;
+  this.webcam = null;
+  this.canvas = null;
+  this.labels = null;
+  this.alertSince = null;   // 나쁜 자세가 시작된 시각 (null = 아직 없음)
+  this.goodSince = null;    // 바른 자세가 이어진 시작 시각 (null = 아직 없음)
+  this.alerting = false;
+  this.lastBeep = 0;        // 경고음을 마지막으로 울린 시각
+
+  this.build();
+}
+
+Helper.prototype.loadCfg = function () {
+  try {
+    var raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      var d = JSON.parse(raw);
+      if (d && typeof d === "object") {
+        this.cfg.url = d.url || "";
+        this.cfg.message = d.message || this.cfg.message;
+        this.cfg.hold = typeof d.hold === "number" ? d.hold : 3;
+        this.cfg.sound = typeof d.sound === "boolean" ? d.sound : true;
+        this.cfg.alerts = d.alerts || {};
+      }
+    }
+  } catch (e) {}
+};
+
+Helper.prototype.saveCfg = function () {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(this.cfg)); } catch (e) {}
+};
+
+/* ---------- 화면 만들기 ---------- */
+Helper.prototype.build = function () {
+  var self = this;
+  this.holder.innerHTML =
+    "<div class='row'>" +
+      "<input class='url-input' type='text' spellcheck='false'>" +
+      "<button class='btn-go'>▶ 시작</button>" +
+      "<button class='btn-ghost btn-stop' disabled>■ 중지</button>" +
+    "</div>" +
+    "<div class='state'>아직 시작하지 않았어요</div>" +
+    "<div class='body-row'>" +
+      "<div class='view'></div>" +
+      "<div class='panel'>" +
+        "<div class='verdict'><div class='big'></div><div class='msg'></div></div>" +
+        "<div class='bars'></div>" +
+        "<div class='streak'></div>" +
+      "</div>" +
+    "</div>" +
+    "<div class='setup' style='display:none'>" +
+      "<h3>⚙️ 알림 설정</h3>" +
+      "<div class='sub'>어떤 자세일 때 알려줄지 정하세요. 이름을 눌러 <b>괜찮아요</b> ↔ <b>알려주기</b> 를 바꿉니다.</div>" +
+      "<div class='classes'></div>" +
+      "<div class='opt-row'>" +
+        "<span>알림 문구</span><input type='text' class='msg-input'>" +
+      "</div>" +
+      "<div class='opt-row'>" +
+        "<span>이만큼 계속되면 알림</span><input type='number' class='hold-input' min='0' max='60' step='1'><span>초</span>" +
+        "<label><input type='checkbox' class='sound-input'> 🔔 경고음으로 알리기</label>" +
+        "<button type='button' class='btn-ghost btn-test'>🔊 소리 확인</button>" +
+      "</div>" +
+    "</div>";
+
+  this.elUrl = this.holder.querySelector(".url-input");
+  this.elStart = this.holder.querySelector(".btn-go");
+  this.elStop = this.holder.querySelector(".btn-stop");
+  this.elState = this.holder.querySelector(".state");
+  this.elView = this.holder.querySelector(".view");
+  this.elVerdict = this.holder.querySelector(".verdict");
+  this.elBig = this.holder.querySelector(".verdict .big");
+  this.elMsg = this.holder.querySelector(".verdict .msg");
+  this.elBars = this.holder.querySelector(".bars");
+  this.elStreak = this.holder.querySelector(".streak");
+  this.elSetup = this.holder.querySelector(".setup");
+  this.elClasses = this.holder.querySelector(".classes");
+  this.elMsgInput = this.holder.querySelector(".msg-input");
+  this.elHold = this.holder.querySelector(".hold-input");
+  this.elSound = this.holder.querySelector(".sound-input");
+  this.elTest = this.holder.querySelector(".btn-test");
+
+  this.elUrl.placeholder = "https://teachablemachine.withgoogle.com/models/XXXXXXXX/  (포즈 모델 주소)";
+  this.elUrl.value = this.cfg.url;
+  this.elMsgInput.value = this.cfg.message;
+  this.elHold.value = this.cfg.hold;
+  this.elSound.checked = this.cfg.sound;
+
+  this.elStart.addEventListener("click", function () { wakeAudio(); self.start(); });
+  this.elStop.addEventListener("click", function () { self.stop("멈췄어요"); });
+  this.elMsgInput.addEventListener("input", function () {
+    self.cfg.message = self.elMsgInput.value; self.saveCfg();
+  });
+  this.elHold.addEventListener("input", function () {
+    var v = parseFloat(self.elHold.value);
+    self.cfg.hold = isNaN(v) ? 0 : v; self.saveCfg();
+  });
+  this.elSound.addEventListener("change", function () {
+    self.cfg.sound = self.elSound.checked; self.saveCfg();
+    if (self.cfg.sound) beep();   // 켜는 순간 한 번 들려 주면서 오디오도 깨운다
+  });
+  this.elTest.addEventListener("click", function () { beep(); });
+};
+
+Helper.prototype.setState = function (text, kind) {
+  this.elState.textContent = text;
+  this.elState.className = "state " + (kind || "");
+};
+
+/* ---------- 시작 ---------- */
+Helper.prototype.start = function () {
+  var self = this;
+  if (this.running || this.loading) return;
+
+  var base = modelBase(this.elUrl.value);
+  if (base.indexOf("http") !== 0) {
+    this.setState("모델 주소를 먼저 붙여넣어 주세요 (https:// 로 시작하는 주소)", "bad");
+    return;
+  }
+  this.cfg.url = this.elUrl.value.trim();
+  this.saveCfg();
+
+  this.loading = true;
+  this.elStart.disabled = true;
+  this.setState("AI 모델을 불러오는 중이에요...", "");
+
+  loadScriptOnce(LIB_TFJS)
+    .then(function () { return loadScriptOnce(LIB_POSE); })
+    .catch(function () { throw new Error("NETWORK"); })
+    .then(function () {
+      return tmPose.load(base + "model.json", base + "metadata.json")
+        .catch(function () { throw new Error("MODEL"); });
+    })
+    .then(function (model) {
+      self.model = model;
+      self.setState("카메라를 켜는 중이에요... (허용 창이 뜨면 [허용])", "");
+      self.webcam = new tmPose.Webcam(VIEW_W, VIEW_H, true);   // true = 거울처럼 좌우 뒤집기
+      return self.webcam.setup()
+        .then(function () { return self.webcam.play(); })
+        .catch(function () { throw new Error("CAMERA"); });
+    })
+    .then(function () {
+      self.elView.innerHTML = "";
+      self.canvas = document.createElement("canvas");
+      self.canvas.width = VIEW_W;
+      self.canvas.height = VIEW_H;
+      self.elView.appendChild(self.canvas);
+
+      self.running = true;
+      self.loading = false;
+      self.elStop.disabled = false;
+      self.elSetup.style.display = "";
+      self.alertSince = null;
+      self.goodSince = null;
+      self.alerting = false;
+      self.setState("👀 AI가 자세를 보고 있어요", "ok");
+      self.loop();
+    })
+    .catch(function (err) {
+      self.loading = false;
+      self.elStart.disabled = false;
+      var m = err && err.message;
+      if (m === "NETWORK") {
+        self.setState("인터넷에 연결되지 않아 AI 라이브러리를 내려받지 못했어요", "bad");
+      } else if (m === "CAMERA") {
+        self.setState("카메라를 켤 수 없어요. 사용을 허용했는지, https:// 주소로 열었는지 확인해 주세요", "bad");
+      } else {
+        self.setState("모델을 불러오지 못했어요. 티처블 머신에서 [업로드]한 <포즈 모델> 주소가 맞는지 확인해 주세요", "bad");
+      }
+    });
+};
+
+/* ---------- 멈추기 ---------- */
+Helper.prototype.stop = function (reason) {
+  this.running = false;
+  if (this.webcam) { try { this.webcam.stop(); } catch (e) {} }
+  this.webcam = null;
+  this.elView.innerHTML = "";
+  this.elVerdict.className = "verdict";
+  this.elBars.innerHTML = "";
+  this.elStreak.textContent = "";
+  this.elStart.disabled = false;
+  this.elStop.disabled = true;
+  this.setState(reason || "멈췄어요", "");
+};
+
+/* ---------- 반복해서 자세 보기 ---------- */
+Helper.prototype.loop = function () {
+  var self = this;
+  if (!this.running) return;
+  this.webcam.update();
+
+  this.model.estimatePose(this.webcam.canvas).then(function (res) {
+    // 카메라 화면 위에 AI가 보는 관절 점과 뼈대를 그려 준다
+    var ctx = self.canvas.getContext("2d");
+    ctx.drawImage(self.webcam.canvas, 0, 0, VIEW_W, VIEW_H);
+    if (res.pose && tmPose.drawKeypoints) {
+      try {
+        tmPose.drawKeypoints(res.pose.keypoints, 0.5, ctx);
+        tmPose.drawSkeleton(res.pose.keypoints, 0.5, ctx);
+      } catch (e) {}
+    }
+    return self.model.predict(res.posenetOutput);
+  }).then(function (preds) {
+    if (!self.running || !preds) return;
+    if (!self.labels) {
+      self.labels = preds.map(function (p) { return p.className; });
+      self.renderClassSetup();
+    }
+    self.onScores(preds.map(function (p) { return { name: p.className, prob: p.probability }; }));
+  }).catch(function () {}).then(function () {
+    if (self.running) requestAnimationFrame(function () { self.loop(); });
+  });
+};
+
+/* ---------- 자세별 알림 설정 ---------- */
+Helper.prototype.renderClassSetup = function () {
+  var self = this;
+  this.elClasses.innerHTML = "";
+  this.labels.forEach(function (name) {
+    // 처음 보는 자세는 이름으로 짐작해서 기본값을 정한다
+    if (typeof self.cfg.alerts[name] !== "boolean") {
+      self.cfg.alerts[name] = self.guessAlert(name);
+    }
+    var row = document.createElement("div");
+    row.className = "cls-row";
+    var nm = document.createElement("div");
+    nm.className = "cls-name";
+    nm.textContent = name;
+    var tg = document.createElement("button");
+    tg.className = "toggle " + (self.cfg.alerts[name] ? "alert" : "good");
+    tg.textContent = self.cfg.alerts[name] ? "⚠️ 알려주기" : "😊 괜찮아요";
+    tg.addEventListener("click", function () {
+      self.cfg.alerts[name] = !self.cfg.alerts[name];
+      self.saveCfg();
+      tg.className = "toggle " + (self.cfg.alerts[name] ? "alert" : "good");
+      tg.textContent = self.cfg.alerts[name] ? "⚠️ 알려주기" : "😊 괜찮아요";
+    });
+    row.appendChild(nm); row.appendChild(tg);
+    self.elClasses.appendChild(row);
+  });
+  this.saveCfg();
+};
+
+/* 자세 이름에 흔히 쓰는 말이 들어 있으면 알림 대상으로 미리 잡아 준다 */
+Helper.prototype.guessAlert = function (name) {
+  var n = String(name).toLowerCase();
+  var bad = ["구부", "굽은", "숙인", "엎드", "삐뚤", "기울", "턱", "다리", "나쁜", "잘못",
+             "bad", "slouch", "bent", "wrong"];
+  for (var i = 0; i < bad.length; i++) if (n.indexOf(bad[i]) >= 0) return true;
+  return false;
+};
+
+/* ---------- 결과 처리 ---------- */
+Helper.prototype.onScores = function (scores) {
+  var best = 0;
+  for (var i = 1; i < scores.length; i++) if (scores[i].prob > scores[best].prob) best = i;
+  var top = scores[best];
+  var isAlert = !!this.cfg.alerts[top.name];
+
+  // 막대 그리기
+  if (this.elBars.children.length !== scores.length) {
+    this.elBars.innerHTML = "";
+    for (var j = 0; j < scores.length; j++) {
+      var item = document.createElement("div");
+      item.className = "pbar-item";
+      item.innerHTML = "<div class='pbar-label'><span class='nm'></span><span class='pc'></span></div>" +
+                       "<div class='pbar-track'><div class='pbar-fill'></div></div>";
+      item.querySelector(".nm").textContent = scores[j].name;
+      this.elBars.appendChild(item);
+    }
+  }
+  for (var k = 0; k < scores.length; k++) {
+    var el = this.elBars.children[k];
+    var pct = Math.round(scores[k].prob * 100);
+    el.querySelector(".pc").textContent = pct + "%";
+    el.querySelector(".pbar-fill").style.width = pct + "%";
+    el.className = "pbar-item" + (k === best ? " top" : "") + (k === best && isAlert ? " alert" : "");
+  }
+
+  // 잠깐 자세가 흐트러진 순간마다 경고가 번쩍이지 않도록, 일정 시간 이어질 때만 알린다
+  var now = performance.now();
+  if (isAlert) {
+    if (this.alertSince === null) this.alertSince = now;
+    this.goodSince = null;
+  } else {
+    this.alertSince = null;
+    if (this.goodSince === null) this.goodSince = now;
+  }
+  var held = (this.alertSince !== null) ? (now - this.alertSince) / 1000 : 0;
+  var shouldAlert = isAlert && held >= this.cfg.hold;
+
+  if (shouldAlert) {
+    // 처음 알릴 때 한 번, 그 뒤로는 자세를 고칠 때까지 몇 초마다 다시 울린다
+    var gap = (this.cfg.repeat || 4) * 1000;
+    if (!this.alerting || (now - this.lastBeep) >= gap) {
+      this.alerting = true;
+      this.lastBeep = now;
+      if (this.cfg.sound) beep();
+    }
+  } else if (!isAlert) {
+    this.alerting = false;
+  }
+
+  this.elVerdict.className = "verdict on " + (shouldAlert ? "bad" : "good");
+  this.elBig.textContent = (shouldAlert ? "⚠️ " : (isAlert ? "⏳ " : "👍 ")) + top.name;
+  this.elMsg.textContent = shouldAlert ? this.cfg.message
+    : (isAlert ? "자세가 흐트러졌어요... (" + this.cfg.hold + "초 이상 계속되면 알려줄게요)" : "좋아요! 이대로 유지해요");
+
+  // 바른 자세를 얼마나 이어가고 있는지 보여준다 (칭찬용)
+  if (!isAlert && this.goodSince !== null) {
+    var sec = Math.floor((now - this.goodSince) / 1000);
+    var txt = sec >= 60 ? (Math.floor(sec / 60) + "분 " + (sec % 60) + "초") : (sec + "초");
+    this.elStreak.innerHTML = "🏅 바른 자세 유지 <b>" + txt + "</b>";
+  } else if (isAlert) {
+    this.elStreak.innerHTML = "";
+  }
+};
+
+new Helper("mod-pose");
+</script>
+</body>
+</html>

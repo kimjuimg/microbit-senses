@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마이크로비트 AI 학습하기</title>
+<style>
+  :root {
+    --x: #ff6b6b;
+    --y: #51cf66;
+    --z: #4dabf7;
+    --ink: #2b3445;
+    --sub: #6b7688;
+    --line: #e3e8f0;
+    --card: #ffffff;
+    --bg: #f4f6fb;
+    --accent: #5b6ef5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px 60px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Pretendard", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+
+  /* ---------- 제목 ---------- */
+  header { text-align: center; margin-bottom: 22px; }
+  header h1 { font-size: 34px; margin: 0 0 8px; letter-spacing: -0.5px; }
+  header .lead {
+    display: inline-block;
+    background: #fff;
+    border: 2px dashed #c9d2e6;
+    border-radius: 999px;
+    padding: 8px 18px;
+    font-size: 15px;
+    color: var(--sub);
+  }
+
+  section {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    box-shadow: 0 2px 10px rgba(40,55,90,.05);
+  }
+  section > h2 {
+    font-size: 19px;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  section > h2 .step {
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    border-radius: 8px;
+    padding: 3px 9px;
+  }
+  section > .desc { color: var(--sub); font-size: 14px; margin: 0 0 16px; }
+  section.locked { opacity: .5; }
+
+  /* ---------- 버튼 ---------- */
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+  }
+  button:disabled { cursor: not-allowed; opacity: .45; }
+  .btn-connect {
+    background: var(--accent);
+    color: #fff;
+    font-size: 19px;
+    padding: 16px 30px;
+    box-shadow: 0 4px 0 #4553c9;
+  }
+  .btn-connect:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #4553c9; }
+  .btn-go {
+    background: #22b14c;
+    color: #fff;
+    font-size: 19px;
+    padding: 16px 30px;
+    box-shadow: 0 4px 0 #17853a;
+  }
+  .btn-go:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #17853a; }
+  .btn-ghost {
+    background: #fff;
+    border: 2px solid var(--line);
+    color: var(--sub);
+    font-size: 15px;
+    padding: 12px 20px;
+  }
+  .btn-mini {
+    background: #fff;
+    border: 2px solid var(--line);
+    color: var(--sub);
+    font-size: 13px;
+    padding: 7px 11px;
+  }
+
+  /* ---------- 연결 ---------- */
+  .connect-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+  #status {
+    font-size: 26px;
+    font-weight: 800;
+    padding: 12px 22px;
+    border-radius: 12px;
+    background: #f1f3f8;
+    color: var(--sub);
+    flex: 1;
+    min-width: 260px;
+    text-align: center;
+  }
+  #status.ok  { background: #e6fbea; color: #1f9d3c; }
+  #status.bad { background: #ffeaea; color: #e03131; }
+  #face { font-size: 52px; line-height: 1; filter: grayscale(1); opacity: .45; transition: filter .2s, opacity .2s; }
+  #face.happy { filter: none; opacity: 1; animation: bounce .9s ease-in-out infinite; }
+  #face.alive { filter: none; opacity: 1; }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50%      { transform: translateY(-9px) rotate(4deg); }
+  }
+  .hint { font-size: 13px; color: var(--sub); margin-top: 14px; line-height: 1.7; }
+  .hint code { background: #eef1f7; padding: 1px 6px; border-radius: 5px; }
+
+  .prep {
+    background: #fff8e6;
+    border: 1px solid #ffe08a;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 0 0 16px;
+    font-size: 14px;
+    line-height: 1.75;
+    color: #8a6100;
+  }
+  .prep b { color: #7a5400; }
+  .prep code { background: #fff1c9; padding: 1px 6px; border-radius: 5px; }
+  .prep a { color: #7a5400; }
+  .prep ol { margin: 8px 0 8px; padding-left: 20px; }
+
+  /* 수신 표시줄 */
+  #rx-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #f1f3f8;
+    color: var(--sub);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  #rx-strip.on { background: #e6fbea; color: #1f7a33; }
+  #rx-strip.warn { background: #fff4e0; color: #a86400; }
+  #rx-dot { width: 10px; height: 10px; border-radius: 50%; background: #c3cbdb; flex: none; }
+  #rx-strip.on #rx-dot { background: #22b14c; animation: blink .5s linear infinite; }
+  #rx-strip.warn #rx-dot { background: #f59f00; }
+  @keyframes blink { 50% { opacity: .25; } }
+  #rx-raw { margin-left: auto; font-size: 12px; opacity: .75; font-weight: 400; }
+
+  /* 지금 값 한 줄 보기 */
+  .live-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .live-chip {
+    background: #f6f8fc;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 7px 12px;
+    font-size: 14px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .live-chip span { color: var(--sub); font-weight: 400; margin-right: 6px; }
+
+  /* ---------- 동작 이름 ---------- */
+  .label-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px dashed var(--line);
+  }
+  .label-row:first-child { border-top: none; }
+  .label-emoji {
+    font-size: 26px;
+    background: #f6f8fc;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    width: 52px;
+    height: 46px;
+    line-height: 1;
+  }
+  .label-name {
+    flex: 1;
+    min-width: 140px;
+    padding: 11px 13px;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    font-size: 16px;
+    font-family: inherit;
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .label-name:focus { outline: none; border-color: var(--accent); }
+  .label-count { font-size: 14px; color: var(--sub); min-width: 64px; text-align: right; }
+
+  /* 어떤 감각을 쓸지 */
+  .feat-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+  .feat-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    background: #fff;
+  }
+  .feat-chip.on { border-color: var(--accent); color: var(--accent); background: #f3f5ff; }
+  .feat-chip.off { opacity: .45; cursor: not-allowed; }
+  .feat-chip small { font-weight: 400; color: var(--sub); }
+
+  /* ---------- 예시 모으기 ---------- */
+  .motion-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .btn-motion {
+    background: #fff;
+    border: 2px solid var(--line);
+    color: var(--ink);
+    font-size: 16px;
+    padding: 18px 10px;
+    line-height: 1.4;
+  }
+  .btn-motion .emoji { display: block; font-size: 28px; margin-bottom: 6px; }
+  .btn-motion .cnt { display: block; font-size: 13px; color: var(--sub); margin-top: 6px; font-weight: 700; }
+  .btn-motion:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .btn-motion.enough { border-color: #51cf66; background: #f3fdf5; }
+  .btn-motion.enough .cnt { color: #1f9d3c; }
+
+  #countdown {
+    display: none;
+    text-align: center;
+    padding: 18px;
+    border-radius: 14px;
+    background: #fff7e6;
+    border: 2px solid #ffd479;
+    margin-bottom: 18px;
+  }
+  #countdown.on { display: block; }
+  #cd-title { font-size: 20px; font-weight: 800; }
+  #cd-num { font-size: 64px; font-weight: 800; color: #f08c00; line-height: 1.1; }
+  #cd-bar { height: 10px; background: #ffe8bd; border-radius: 6px; overflow: hidden; margin-top: 6px; }
+  #cd-bar > div { height: 100%; width: 0; background: #f08c00; }
+
+  .notice {
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 11px 14px;
+    margin-top: 12px;
+  }
+  .notice.info { background: #f1f3f8; color: var(--sub); }
+  .notice.good { background: #e6fbea; color: #1f7a33; }
+  .notice.warn { background: #fff4e0; color: #a86400; }
+
+  /* ---------- 학습 ---------- */
+  #train-bar {
+    display: none;
+    height: 14px;
+    background: #e9ecf5;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 14px;
+  }
+  #train-bar.on { display: block; }
+  #train-bar > div { height: 100%; width: 0; background: var(--accent); transition: width .1s linear; }
+
+  /* ---------- 테스트 ---------- */
+  .predict-box {
+    display: none;
+    margin-top: 16px;
+    border: 2px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    background: #fbfcfe;
+  }
+  .predict-box.on { display: block; }
+  .predict-head { font-size: 15px; color: var(--sub); }
+  .predict-name { font-size: 40px; font-weight: 800; margin: 4px 0 14px; }
+  .predict-name.right { color: #1f9d3c; }
+  .predict-name.wrong { color: #e03131; }
+  .pbar-item { margin-bottom: 11px; }
+  .pbar-label { display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; margin-bottom: 5px; }
+  .pbar-track { height: 18px; background: #eaeef6; border-radius: 9px; overflow: hidden; }
+  .pbar-fill { height: 100%; width: 0; background: var(--accent); border-radius: 9px; transition: width .2s ease; }
+  .pbar-item.top .pbar-label { color: #1f9d3c; }
+  .pbar-item.top .pbar-fill { background: #22b14c; }
+
+  /* ---------- 성적표 ---------- */
+  .score-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .score-big { font-size: 56px; font-weight: 800; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .score-sub { font-size: 15px; color: var(--sub); line-height: 1.7; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 16px; }
+  th, td { border: 1px solid #ccd3e0; padding: 10px 8px; text-align: center; }
+  thead th { background: #eef1f9; font-size: 14px; }
+  tbody td:first-child { font-weight: 700; background: #fafbfe; }
+  td.diag { background: #e6fbea; font-weight: 800; color: #1f7a33; }
+  td.zero { color: #c3cbdb; }
+  .table-actions { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .table-note { font-size: 13px; color: var(--sub); margin-top: 10px; line-height: 1.7; }
+
+  footer {
+    text-align: center;
+    background: #eef1ff;
+    border: 2px solid #c8d0ff;
+    border-radius: 16px;
+    padding: 18px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #3c49b8;
+    line-height: 1.7;
+  }
+
+  @media (max-width: 760px) {
+    .motion-btns { grid-template-columns: repeat(2, 1fr); }
+    header h1 { font-size: 26px; }
+    #status { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>🤖 마이크로비트 AI 학습하기</h1>
+    <p class="lead">AI는 눈이 없습니다. 여러분이 모아 준 <b>숫자</b>만 보고 동작을 맞혀야 해요 🔢</p>
+  </header>
+
+  <!-- 1. 연결 -->
+  <section>
+    <h2><span class="step">1</span> 마이크로비트 연결하기</h2>
+    <p class="desc">1차시에서 쓰던 그 코드가 들어 있는 마이크로비트를 USB로 연결하세요.</p>
+
+    <div class="prep">
+      <b>먼저 마이크로비트에 관찰용 코드가 들어 있어야 합니다</b>
+      <ol>
+        <li><a href="https://makecode.microbit.org" target="_blank" rel="noopener">makecode.microbit.org</a> → 새 프로젝트 → 오른쪽 위 <code>{ } JavaScript</code> 탭</li>
+        <li><code>microbit_sensor_observe_code.js</code> 내용을 전체 복사해서 붙여넣고 [다운로드]</li>
+        <li>마이크로비트 화면에 <b>물음표(?)</b> 가 흐르면 준비 끝</li>
+      </ol>
+    </div>
+
+    <div class="connect-row">
+      <button id="btn-connect" class="btn-connect">🔌 마이크로비트 연결</button>
+      <div id="face" title="연결 상태">😴</div>
+      <div id="status">연결 안 됨</div>
+      <button id="btn-disconnect" class="btn-ghost" disabled>연결 끊기</button>
+      <button id="btn-any" class="btn-ghost" style="display:none">전체 장치 목록에서 찾기</button>
+    </div>
+
+    <div id="rx-strip">
+      <span id="rx-dot"></span>
+      <span id="rx-text">아직 마이크로비트에서 값이 오지 않았어요</span>
+      <code id="rx-raw"></code>
+    </div>
+
+    <div class="live-row" id="live-row"></div>
+
+    <p class="hint">
+      ⚠️ <b>Chrome 또는 Edge</b>에서만 동작합니다. 1차시 프로그램이 다른 탭에 연결돼 있으면 먼저 [연결 끊기]를 눌러 주세요.
+    </p>
+  </section>
+
+  <!-- 2. 무엇을 배울지 정하기 -->
+  <section>
+    <h2><span class="step">2</span> AI에게 무엇을 가르칠지 정하기</h2>
+    <p class="desc">AI가 구분할 <b>동작 이름</b>과, AI가 볼 수 있는 <b>감각</b>을 정합니다. 이름 칸은 자유롭게 고칠 수 있어요.</p>
+
+    <div id="label-list"></div>
+    <div class="table-actions">
+      <button id="btn-add-label" class="btn-ghost">+ 동작 추가</button>
+    </div>
+
+    <p class="desc" style="margin-top:22px;margin-bottom:6px"><b>AI가 볼 수 있는 감각</b> (많이 켤수록 유리한 건 아닙니다 — 필요 없는 감각은 오히려 방해가 돼요)</p>
+    <div class="feat-row" id="feat-row"></div>
+    <div class="notice info" id="feat-note">움직임(X·Y·Z)만으로 먼저 해보고, 잘 안 되는 동작이 있을 때 다른 감각을 켜 보세요.</div>
+  </section>
+
+  <!-- 3. 예시 모으기 -->
+  <section>
+    <h2><span class="step">3</span> 예시 모으기 <span style="font-size:13px;font-weight:400;color:#6b7688">(= AI의 교과서 만들기)</span></h2>
+    <p class="desc">동작 버튼을 누르고 <b>3초 동안</b> 그 동작을 하세요. 한 동작마다 <b>5개 이상</b> 모으면 좋습니다.</p>
+
+    <div class="motion-btns" id="motion-btns"></div>
+
+    <div id="countdown">
+      <div id="cd-title">준비!</div>
+      <div id="cd-num">3</div>
+      <div id="cd-bar"><div></div></div>
+    </div>
+
+    <div class="notice info" id="collect-note">아직 모은 예시가 없어요.</div>
+    <div class="table-actions">
+      <button id="btn-clear-data" class="btn-ghost">🗑️ 모은 예시 전체 지우기</button>
+    </div>
+  </section>
+
+  <!-- 4. 학습 -->
+  <section>
+    <h2><span class="step">4</span> 학습하기 <span style="font-size:13px;font-weight:400;color:#6b7688">(= 동작마다 대표 패턴 찾기)</span></h2>
+    <p class="desc">AI는 동작마다 모인 숫자들의 <b>가운데 값(대표 패턴)</b>을 계산합니다. 새 값이 들어오면 어느 대표 패턴과 가장 비슷한지 비교해서 답을 고릅니다.</p>
+
+    <button id="btn-train" class="btn-go" disabled>🧠 학습시키기</button>
+    <div id="train-bar"><div></div></div>
+    <div class="notice info" id="train-note">예시를 모으면 학습할 수 있어요.</div>
+
+    <div id="train-result"></div>
+  </section>
+
+  <!-- 5. 테스트 -->
+  <section>
+    <h2><span class="step">5</span> 테스트하기</h2>
+    <p class="desc">할 동작을 고르고 3초 동안 움직이면, AI가 무엇이라고 생각하는지 보여줍니다. 정답은 여러분이 고른 동작이니 <b>맞았는지 자동으로 채점</b>됩니다.</p>
+
+    <div class="motion-btns" id="test-btns"></div>
+
+    <div class="predict-box" id="predict-box">
+      <div class="predict-head">AI의 대답</div>
+      <div class="predict-name" id="predict-name">-</div>
+      <div id="predict-bars"></div>
+    </div>
+    <div class="notice info" id="test-note">먼저 4단계에서 학습을 시켜 주세요.</div>
+  </section>
+
+  <!-- 6. 성적표 -->
+  <section>
+    <h2><span class="step">6</span> AI 성적표</h2>
+    <p class="desc">몇 번 맞혔는지, 어떤 동작을 서로 헷갈려 하는지 봅니다.</p>
+
+    <div class="score-row">
+      <div class="score-big" id="score-pct">-</div>
+      <div class="score-sub" id="score-detail">아직 테스트하지 않았어요.</div>
+    </div>
+
+    <div id="confusion"></div>
+    <p class="table-note">
+      가로줄 = <b>실제로 한 동작</b>, 세로줄 = <b>AI가 말한 동작</b>. 초록 칸(대각선)이 맞힌 횟수입니다.
+    </p>
+    <div class="table-actions">
+      <button id="btn-clear-score" class="btn-ghost">↺ 성적표 지우기</button>
+    </div>
+  </section>
+
+  <footer>
+    🤔 생각해 봅시다<br>
+    AI가 틀린 이유는 무엇일까요? 예시를 더 모으면 나아질까요?<br>
+    한 사람 데이터로만 배운 AI는, 다른 친구의 동작도 잘 맞힐까요?
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ===================== 설정 ===================== */
+var MEASURE_MS = 3000;   // 한 예시를 모으는 시간
+var READY_MS   = 1000;   // 시작 전 준비 시간
+var MIN_PER_LABEL = 3;   // 학습에 필요한 동작별 최소 예시 수
+var GOOD_PER_LABEL = 5;  // 권장 예시 수
+var MICROBIT_VENDOR_ID = 0x0D28;
+var STORE_KEY = "microbit-ai-learning-v1";
+var EMOJI_POOL = ["↔️", "↕️", "🔄", "✋", "🌀", "👆", "👋", "🤸", "🎯", "⭐"];
+
+/* AI가 쓸 수 있는 감각(특징) 묶음.
+   need = 그 값이 마이크로비트에서 들어와야 켤 수 있다는 뜻 */
+var FEATURE_SETS = [
+  { id: "move", name: "움직임 (X·Y·Z)", desc: "흔들림의 세기와 방향", need: null, feats: [
+      { key: "xr", label: "X 흔들림", unit: "" },
+      { key: "yr", label: "Y 흔들림", unit: "" },
+      { key: "zr", label: "Z 흔들림", unit: "" },
+      { key: "xa", label: "X 평균", unit: "" },
+      { key: "ya", label: "Y 평균", unit: "" },
+      { key: "za", label: "Z 평균", unit: "" }
+  ] },
+  { id: "tilt", name: "기울기", desc: "앞뒤·좌우로 기운 정도", need: "pitch", feats: [
+      { key: "pa", label: "앞뒤 기울기", unit: "°" },
+      { key: "ra", label: "좌우 기울기", unit: "°" }
+  ] },
+  { id: "temp", name: "온도", desc: "손으로 쥐었는지", need: "temp", feats: [
+      { key: "ta", label: "온도", unit: "℃" }
+  ] },
+  { id: "light", name: "밝기", desc: "어두운 곳인지", need: "light", feats: [
+      { key: "la", label: "밝기", unit: "" }
+  ] }
+];
+
+/* ===================== 상태 ===================== */
+var port = null, reader = null, keepReading = false;
+var latest = { x: 0, y: 0, z: 0 };
+var extra = { pitch: null, roll: null, temp: null, light: null };
+var seen = { pitch: false, temp: false, light: false };   // 그 값이 실제로 들어온 적 있는지
+
+var labels = [];        // [{id, name, emoji}]
+var samples = [];       // [{labelId, f:{xr,yr,...}}]
+var useSets = { move: true, tilt: false, temp: false, light: false };
+var model = null;       // {keys, mean, std, centroids:{labelId:[...]}, rawAvg:{labelId:{key:값}}, labelIds}
+var testLog = [];       // [{actual, predicted}]
+
+var measuring = null;   // {mode:"collect"|"test", labelId, samples:[]}
+var lastCollectMsg = "";   // 방금 예시를 모았을 때 보여줄 칭찬 문구
+var timers = [];
+var lastRxTime = 0, rxCount = 0, rxTick = 0, rxBytes = 0;
+var rxTimer = null, badLine = "", deviceNote = "", rxTail = "", rxFirstBytes = [];
+
+/* ===================== DOM ===================== */
+function $(id) { return document.getElementById(id); }
+var statusEl = $("status"), faceEl = $("face");
+var btnConnect = $("btn-connect"), btnDisconnect = $("btn-disconnect"), btnAny = $("btn-any");
+var rxStrip = $("rx-strip"), rxText = $("rx-text"), rxRaw = $("rx-raw");
+var liveRow = $("live-row");
+var labelListEl = $("label-list"), featRowEl = $("feat-row"), featNote = $("feat-note");
+var motionBtnsEl = $("motion-btns"), testBtnsEl = $("test-btns");
+var cdBox = $("countdown"), cdTitle = $("cd-title"), cdNum = $("cd-num");
+var cdBar = $("cd-bar").firstElementChild;
+var collectNote = $("collect-note"), trainNote = $("train-note"), testNote = $("test-note");
+var btnTrain = $("btn-train"), trainBar = $("train-bar"), trainResult = $("train-result");
+var predictBox = $("predict-box"), predictName = $("predict-name"), predictBars = $("predict-bars");
+var scorePct = $("score-pct"), scoreDetail = $("score-detail"), confusionEl = $("confusion");
+
+/* ===================== 저장 / 불러오기 ===================== */
+/* 수업 중 실수로 새로고침해도 모은 예시가 날아가지 않도록 브라우저에 저장해 둔다 */
+function save() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      labels: labels, samples: samples, useSets: useSets, testLog: testLog
+    }));
+  } catch (e) {}
+}
+
+function load() {
+  var raw = null;
+  try { raw = localStorage.getItem(STORE_KEY); } catch (e) {}
+  if (!raw) return false;
+  try {
+    var d = JSON.parse(raw);
+    if (!d || !d.labels || !d.labels.length) return false;
+    labels = d.labels;
+    samples = d.samples || [];
+    useSets = d.useSets || useSets;
+    testLog = d.testLog || [];
+    return true;
+  } catch (e) { return false; }
+}
+
+function defaultLabels() {
+  return [
+    { id: "m1", name: "좌우로 흔들기", emoji: "↔️" },
+    { id: "m2", name: "위아래로 흔들기", emoji: "↕️" },
+    { id: "m3", name: "뒤집기", emoji: "🔄" },
+    { id: "m4", name: "정지 상태", emoji: "✋" }
+  ];
+}
+
+/* ===================== 연결 ===================== */
+function setStatus(text, kind) { statusEl.textContent = text; statusEl.className = kind || ""; }
+
+function setFace(kind) {
+  var map = { idle: "😴", wait: "⏳", happy: "😊", quiet: "😕", sad: "😢" };
+  faceEl.textContent = map[kind] || map.idle;
+  faceEl.className = (kind === "happy") ? "happy" : (kind === "quiet" || kind === "sad") ? "alive" : "";
+}
+
+function sendToMicrobit(text) {
+  if (!port || !port.writable) return Promise.resolve();
+  var writer;
+  try { writer = port.writable.getWriter(); } catch (e) { return Promise.resolve(); }
+  var write = writer.write(new TextEncoder().encode(text)).catch(function () {});
+  var guard = new Promise(function (r) { setTimeout(r, 500); });
+  return Promise.race([write, guard]).then(function () { try { writer.releaseLock(); } catch (e) {} });
+}
+
+btnConnect.addEventListener("click", function () { connect(false); });
+btnAny.addEventListener("click", function () { connect(true); });
+btnDisconnect.addEventListener("click", function () { disconnect(true); });
+
+function connect(showAll) {
+  if (!("serial" in navigator)) {
+    setStatus("❌ 이 브라우저는 지원하지 않아요 (Chrome/Edge 사용)", "bad");
+    return;
+  }
+  setStatus("연결하는 중...", "");
+  setFace("wait");
+  btnAny.style.display = "none";
+
+  var options = showAll ? {} : { filters: [{ usbVendorId: MICROBIT_VENDOR_ID }] };
+
+  navigator.serial.requestPort(options).then(function (p) {
+    port = p;
+    return port.open({ baudRate: 115200 });
+  }).then(function () {
+    return port.setSignals
+      ? port.setSignals({ dataTerminalReady: true, requestToSend: true }).catch(function () {})
+      : Promise.resolve();
+  }).then(function () {
+    keepReading = true;
+    rxCount = 0; lastRxTime = 0; badLine = ""; rxBytes = 0; rxTail = ""; rxFirstBytes = [];
+    extra = { pitch: null, roll: null, temp: null, light: null };
+    seen = { pitch: false, temp: false, light: false };
+    btnConnect.disabled = true;
+    btnDisconnect.disabled = false;
+    setStatus("✅ 연결 성공!", "ok");
+    setFace("happy");
+    checkDeviceKind();
+    readLoop();
+    sendToMicrobit("C\n");
+    startRxWatch();
+    renderAll();
+  }).catch(function (e) {
+    port = null;
+    setFace("sad");
+    if (e && e.name === "NotFoundError") {
+      setStatus("연결 안 됨", "bad");
+      rxStrip.className = "warn";
+      rxText.textContent = showAll
+        ? "장치를 선택하지 않았어요"
+        : "목록에 마이크로비트가 없었나요? USB 케이블이 '충전 전용'이면 목록에 뜨지 않습니다";
+      if (!showAll) btnAny.style.display = "";
+    } else {
+      setStatus("❌ 연결 실패 - 다른 프로그램이 쓰고 있는지 확인해 주세요", "bad");
+      rxStrip.className = "warn";
+      rxText.textContent = "1차시 프로그램이나 MakeCode 편집기가 마이크로비트를 이미 쓰고 있으면 연결되지 않습니다";
+    }
+  });
+}
+
+function checkDeviceKind() {
+  var info = null;
+  try { info = port.getInfo ? port.getInfo() : null; } catch (e) { info = null; }
+  deviceNote = "";
+  if (!info || typeof info.usbVendorId !== "number") return;
+  if (info.usbVendorId !== MICROBIT_VENDOR_ID) {
+    deviceNote = "⚠️ 고른 장치가 마이크로비트가 아닌 것 같아요. [연결 끊기] 후 다시 골라 주세요";
+  }
+}
+
+function startRxWatch() {
+  stopRxWatch();
+  rxTimer = setInterval(function () {
+    if (!port) return;
+    var since = lastRxTime ? (performance.now() - lastRxTime) : Infinity;
+    var perSec = rxTick;
+    rxTick = 0;
+
+    if (since < 1500) {
+      rxStrip.className = "on";
+      rxText.textContent = "센서 값을 받고 있어요 (초당 " + perSec + "개)";
+      setFace("happy");
+    } else if (lastRxTime === 0) {
+      rxStrip.className = "warn";
+      rxText.textContent = deviceNote ? deviceNote
+        : badLine ? "다른 형식의 데이터가 오고 있어요. microbit_sensor_observe_code.js 를 다시 넣어 주세요"
+        : "마이크로비트가 아무것도 보내지 않고 있어요. 화면에 '?' 가 보이나요?";
+      setFace("quiet");
+    } else {
+      rxStrip.className = "warn";
+      rxText.textContent = "값이 잠시 끊겼어요. USB 케이블을 확인해 주세요";
+      setFace("quiet");
+    }
+  }, 1000);
+}
+
+function stopRxWatch() { if (rxTimer) clearInterval(rxTimer); rxTimer = null; }
+
+function readLoop() {
+  var buffer = "";
+  var decoder = new TextDecoder();
+  reader = port.readable.getReader();
+
+  function pump() {
+    reader.read().then(function (res) {
+      if (res.done || !keepReading) { cleanup(); return; }
+      rxBytes += res.value.length;
+      buffer += decoder.decode(res.value, { stream: true });
+      var nl;
+      while ((nl = buffer.indexOf("\n")) >= 0) {
+        var line = buffer.slice(0, nl).trim();
+        buffer = buffer.slice(nl + 1);
+        if (line) handleLine(line);
+      }
+      rxTail = buffer;
+      if (buffer.length > 4096) buffer = "";
+      pump();
+    }).catch(function () { cleanup(); });
+  }
+
+  function cleanup() {
+    try { reader.releaseLock(); } catch (e) {}
+    reader = null;
+  }
+
+  pump();
+}
+
+function handleLine(line) {
+  rxRaw.textContent = line.length > 110 ? line.slice(0, 110) + "…" : line;
+
+  var d = null;
+  var s = line.indexOf("{"), e2 = line.lastIndexOf("}");
+  if (s >= 0 && e2 > s) { try { d = JSON.parse(line.slice(s, e2 + 1)); } catch (e) { d = null; } }
+  if (!d || typeof d.x !== "number" || typeof d.y !== "number" || typeof d.z !== "number") {
+    badLine = line;
+    return;
+  }
+
+  rxCount++; rxTick++;
+  lastRxTime = performance.now();
+
+  latest = { x: d.x, y: d.y, z: d.z };
+  if (typeof d.pitch === "number") { extra.pitch = d.pitch; if (!seen.pitch) { seen.pitch = true; renderFeatChips(); } }
+  if (typeof d.roll === "number") extra.roll = d.roll;
+  if (typeof d.temp === "number") { extra.temp = d.temp; if (!seen.temp) { seen.temp = true; renderFeatChips(); } }
+  if (typeof d.light === "number") { extra.light = d.light; if (!seen.light) { seen.light = true; renderFeatChips(); } }
+
+  if (measuring) {
+    measuring.samples.push({
+      x: d.x, y: d.y, z: d.z,
+      pitch: extra.pitch, roll: extra.roll, temp: extra.temp, light: extra.light
+    });
+  }
+  renderLive();
+}
+
+function disconnect(userInitiated) {
+  stopRxWatch();
+  cancelMeasure();
+  var bye = userInitiated ? sendToMicrobit("D\n") : Promise.resolve();
+  bye.then(function () {
+    keepReading = false;
+    port = null;
+    btnConnect.disabled = false;
+    btnDisconnect.disabled = true;
+    setStatus(userInitiated ? "연결 안 됨" : "❌ 연결이 끊어졌어요", userInitiated ? "" : "bad");
+    setFace(userInitiated ? "idle" : "sad");
+    lastRxTime = 0; rxTick = 0; badLine = ""; deviceNote = "";
+    btnAny.style.display = "none";
+    rxStrip.className = "";
+    rxText.textContent = "연결이 끊어졌습니다";
+    rxRaw.textContent = "";
+    liveRow.innerHTML = "";
+    renderAll();
+  });
+}
+
+/* ===================== 지금 값 보여주기 ===================== */
+function renderLive() {
+  if (!port) { liveRow.innerHTML = ""; return; }
+  var chips = [
+    ["X", latest.x], ["Y", latest.y], ["Z", latest.z]
+  ];
+  if (extra.pitch !== null) chips.push(["앞뒤", extra.pitch + "°"]);
+  if (extra.roll !== null) chips.push(["좌우", extra.roll + "°"]);
+  if (extra.temp !== null) chips.push(["온도", extra.temp + "℃"]);
+  if (extra.light !== null) chips.push(["밝기", extra.light]);
+
+  if (liveRow.children.length !== chips.length) {
+    liveRow.innerHTML = "";
+    for (var i = 0; i < chips.length; i++) {
+      var c = document.createElement("div");
+      c.className = "live-chip";
+      c.innerHTML = "<span></span><b></b>";
+      liveRow.appendChild(c);
+    }
+  }
+  for (var j = 0; j < chips.length; j++) {
+    liveRow.children[j].firstChild.textContent = chips[j][0];
+    liveRow.children[j].lastChild.textContent = chips[j][1];
+  }
+}
+
+/* ===================== 동작 이름 ===================== */
+function renderLabels() {
+  labelListEl.innerHTML = "";
+  labels.forEach(function (lab) {
+    var row = document.createElement("div");
+    row.className = "label-row";
+
+    var emo = document.createElement("button");
+    emo.className = "label-emoji";
+    emo.textContent = lab.emoji;
+    emo.title = "누르면 그림이 바뀝니다";
+    emo.addEventListener("click", function () {
+      var i = EMOJI_POOL.indexOf(lab.emoji);
+      lab.emoji = EMOJI_POOL[(i + 1) % EMOJI_POOL.length];
+      save();
+      renderAll();
+    });
+
+    var name = document.createElement("input");
+    name.className = "label-name";
+    name.value = lab.name;
+    name.addEventListener("input", function () {
+      lab.name = name.value;
+      save();
+      renderMotionButtons();
+      renderScore();
+    });
+
+    var cnt = document.createElement("div");
+    cnt.className = "label-count";
+    cnt.textContent = countOf(lab.id) + "개";
+
+    var del = document.createElement("button");
+    del.className = "btn-mini";
+    del.textContent = "삭제";
+    del.disabled = labels.length <= 2;
+    del.addEventListener("click", function () {
+      labels = labels.filter(function (l) { return l.id !== lab.id; });
+      samples = samples.filter(function (s) { return s.labelId !== lab.id; });
+      testLog = testLog.filter(function (t) { return t.actual !== lab.id && t.predicted !== lab.id; });
+      model = null;
+      save();
+      renderAll();
+    });
+
+    row.appendChild(emo); row.appendChild(name); row.appendChild(cnt); row.appendChild(del);
+    labelListEl.appendChild(row);
+  });
+}
+
+$("btn-add-label").addEventListener("click", function () {
+  var id = "m" + Date.now();
+  labels.push({ id: id, name: "새 동작", emoji: EMOJI_POOL[labels.length % EMOJI_POOL.length] });
+  model = null;
+  save();
+  renderAll();
+});
+
+/* ===================== 감각(특징) 고르기 ===================== */
+function setAvailable(set) {
+  if (!set.need) return true;
+  return seen[set.need];
+}
+
+function renderFeatChips() {
+  featRowEl.innerHTML = "";
+  FEATURE_SETS.forEach(function (set) {
+    var able = setAvailable(set);
+    var chip = document.createElement("div");
+    chip.className = "feat-chip " + (!able ? "off" : (useSets[set.id] ? "on" : ""));
+    chip.innerHTML = "<b>" + (useSets[set.id] && able ? "☑" : "☐") + "</b> " + set.name +
+                     " <small>" + (able ? set.desc : "값이 아직 안 들어왔어요") + "</small>";
+    if (able) {
+      chip.addEventListener("click", function () {
+        useSets[set.id] = !useSets[set.id];
+        if (!useSets.move && !useSets.tilt && !useSets.temp && !useSets.light) useSets[set.id] = true;
+        model = null;
+        save();
+        renderAll();
+      });
+    }
+    featRowEl.appendChild(chip);
+  });
+
+  var names = FEATURE_SETS.filter(function (s) { return useSets[s.id]; }).map(function (s) { return s.name; });
+  featNote.textContent = "지금 AI가 볼 수 있는 것: " + names.join(", ") +
+    " → 숫자 " + activeKeys().length + "개로 판단합니다";
+  featNote.className = "notice info";
+}
+
+/* 지금 켜진 감각의 특징 key 목록 */
+function activeKeys() {
+  var keys = [];
+  FEATURE_SETS.forEach(function (set) {
+    if (useSets[set.id] && setAvailable(set)) {
+      set.feats.forEach(function (f) { keys.push(f.key); });
+    }
+  });
+  return keys;
+}
+
+function featLabel(key) {
+  var found = null;
+  FEATURE_SETS.forEach(function (set) {
+    set.feats.forEach(function (f) { if (f.key === key) found = f; });
+  });
+  return found || { label: key, unit: "" };
+}
+
+/* ===================== 예시 모으기 ===================== */
+function countOf(labelId) {
+  var n = 0;
+  for (var i = 0; i < samples.length; i++) if (samples[i].labelId === labelId) n++;
+  return n;
+}
+
+function renderMotionButtons() {
+  [motionBtnsEl, testBtnsEl].forEach(function (holder) {
+    var isTest = (holder === testBtnsEl);
+    holder.innerHTML = "";
+    holder.style.gridTemplateColumns = "repeat(" + Math.min(Math.max(labels.length, 2), 4) + ", 1fr)";
+    labels.forEach(function (lab) {
+      var n = countOf(lab.id);
+      var b = document.createElement("button");
+      b.className = "btn-motion" + (!isTest && n >= GOOD_PER_LABEL ? " enough" : "");
+      b.innerHTML = "<span class='emoji'></span><span class='nm'></span>" +
+                    (isTest ? "<span class='cnt'>이 동작으로 테스트</span>" : "<span class='cnt'></span>");
+      b.querySelector(".emoji").textContent = lab.emoji;
+      b.querySelector(".nm").textContent = lab.name;
+      if (!isTest) b.querySelector(".cnt").textContent = "모은 예시 " + n + "개";
+      b.disabled = !port || !!measuring || (isTest && !model);
+      b.addEventListener("click", function () {
+        startMeasure(isTest ? "test" : "collect", lab.id);
+      });
+      holder.appendChild(b);
+    });
+  });
+}
+
+function startMeasure(mode, labelId) {
+  if (!port || measuring) return;
+  measuring = { mode: mode, labelId: labelId, samples: [] };
+  renderMotionButtons();
+
+  var lab = labelById(labelId);
+  cdBox.className = "on";
+  cdTitle.textContent = (mode === "test" ? "테스트: " : "") + lab.emoji + " " + lab.name + " 준비!";
+  cdNum.textContent = "준비";
+  cdBar.style.width = "0%";
+
+  // 3단계에서 측정하든 5단계에서 측정하든 같은 안내 상자를 쓴다
+  var box = cdBox;
+  if (mode === "test") {
+    testBtnsEl.parentNode.insertBefore(box, testBtnsEl.nextSibling);
+  } else {
+    motionBtnsEl.parentNode.insertBefore(box, motionBtnsEl.nextSibling);
+  }
+
+  timers.push(setTimeout(function () {
+    cdTitle.textContent = (mode === "test" ? "테스트 중! " : "지금 하세요! ") + lab.emoji + " " + lab.name;
+    measuring.samples = [];
+    var start = performance.now();
+    var tick = setInterval(function () {
+      var passed = performance.now() - start;
+      var left = Math.max(0, MEASURE_MS - passed);
+      cdNum.textContent = (left / 1000).toFixed(1);
+      cdBar.style.width = Math.min(100, passed / MEASURE_MS * 100) + "%";
+      if (passed >= MEASURE_MS) {
+        clearInterval(tick);
+        finishMeasure();
+      }
+    }, 50);
+    timers.push(tick);
+  }, READY_MS));
+}
+
+function finishMeasure() {
+  var m = measuring;
+  measuring = null;
+  cdBox.className = "";
+
+  if (!m || m.samples.length < 5) {
+    lastCollectMsg = "⚠️ 값이 충분히 들어오지 않았어요. 연결 상태를 확인하고 다시 해보세요.";
+    renderAll();
+    return;
+  }
+
+  var f = featuresOf(m.samples);
+
+  if (m.mode === "collect") {
+    samples.push({ labelId: m.labelId, f: f });
+    model = null;   // 예시가 바뀌었으니 다시 학습해야 한다
+    save();
+    var lab = labelById(m.labelId);
+    lastCollectMsg = "✅ '" + lab.name + "' 예시 " + countOf(m.labelId) + "개째를 모았어요.";
+  } else {
+    doTest(m.labelId, f);
+  }
+  renderAll();
+}
+
+function cancelMeasure() {
+  measuring = null;
+  for (var i = 0; i < timers.length; i++) { clearTimeout(timers[i]); clearInterval(timers[i]); }
+  timers = [];
+  cdBox.className = "";
+}
+
+/* 3초 동안 모은 값에서 특징(숫자 몇 개)을 뽑아낸다 = 특징 추출 */
+function featuresOf(list) {
+  function stat(get) {
+    var min = Infinity, max = -Infinity, sum = 0, n = 0;
+    for (var i = 0; i < list.length; i++) {
+      var v = get(list[i]);
+      if (typeof v !== "number") continue;
+      if (v < min) min = v;
+      if (v > max) max = v;
+      sum += v; n++;
+    }
+    if (!n) return { range: 0, avg: 0 };
+    return { range: max - min, avg: sum / n };
+  }
+  var sx = stat(function (s) { return s.x; });
+  var sy = stat(function (s) { return s.y; });
+  var sz = stat(function (s) { return s.z; });
+  var sp = stat(function (s) { return s.pitch; });
+  var sr = stat(function (s) { return s.roll; });
+  var st = stat(function (s) { return s.temp; });
+  var sl = stat(function (s) { return s.light; });
+  return {
+    xr: Math.round(sx.range), yr: Math.round(sy.range), zr: Math.round(sz.range),
+    xa: Math.round(sx.avg), ya: Math.round(sy.avg), za: Math.round(sz.avg),
+    pa: Math.round(sp.avg), ra: Math.round(sr.avg),
+    ta: Math.round(st.avg), la: Math.round(sl.avg)
+  };
+}
+
+$("btn-clear-data").addEventListener("click", function () {
+  samples = [];
+  model = null;
+  lastCollectMsg = "";
+  save();
+  renderAll();
+});
+
+/* ===================== 학습 ===================== */
+function canTrain() {
+  if (labels.length < 2) return false;
+  for (var i = 0; i < labels.length; i++) {
+    if (countOf(labels[i].id) < MIN_PER_LABEL) return false;
+  }
+  return activeKeys().length > 0;
+}
+
+btnTrain.addEventListener("click", function () {
+  if (!canTrain()) return;
+  btnTrain.disabled = true;
+  trainBar.className = "on";
+  var bar = trainBar.firstElementChild;
+  bar.style.width = "0%";
+
+  // 실제 계산은 순식간이지만, "배우는 중"이라는 것을 눈으로 보여주기 위해 잠깐 진행 막대를 돌린다
+  var p = 0;
+  var tick = setInterval(function () {
+    p += 8;
+    bar.style.width = Math.min(p, 100) + "%";
+    if (p >= 100) {
+      clearInterval(tick);
+      trainBar.className = "";
+      train();
+      renderAll();
+    }
+  }, 40);
+  timers.push(tick);
+});
+
+function train() {
+  var keys = activeKeys();
+  var rows = samples.map(function (s) {
+    return keys.map(function (k) { return s.f[k]; });
+  });
+
+  // 값의 크기가 제각각(흔들림 1000 vs 온도 25)이라 그대로 비교하면 불공평하다.
+  // 각 숫자를 "평균에서 얼마나 떨어져 있는지"로 바꿔서 공평하게 맞춘다.
+  var mean = [], std = [];
+  for (var c = 0; c < keys.length; c++) {
+    var sum = 0;
+    for (var i = 0; i < rows.length; i++) sum += rows[i][c];
+    var m = sum / rows.length;
+    var v = 0;
+    for (var j = 0; j < rows.length; j++) v += (rows[j][c] - m) * (rows[j][c] - m);
+    var sd = Math.sqrt(v / rows.length);
+    mean.push(m);
+    std.push(sd < 1e-6 ? 1 : sd);
+  }
+
+  // 동작마다 대표 패턴(가운데 값)을 구한다 = 학습
+  var centroids = {}, rawAvg = {}, counts = {};
+  labels.forEach(function (lab) {
+    centroids[lab.id] = keys.map(function () { return 0; });
+    rawAvg[lab.id] = {};
+    counts[lab.id] = 0;
+  });
+  samples.forEach(function (s) {
+    if (!centroids[s.labelId]) return;
+    counts[s.labelId]++;
+    for (var c2 = 0; c2 < keys.length; c2++) {
+      centroids[s.labelId][c2] += (s.f[keys[c2]] - mean[c2]) / std[c2];
+      rawAvg[s.labelId][keys[c2]] = (rawAvg[s.labelId][keys[c2]] || 0) + s.f[keys[c2]];
+    }
+  });
+  labels.forEach(function (lab) {
+    var n = counts[lab.id] || 1;
+    for (var c3 = 0; c3 < keys.length; c3++) {
+      centroids[lab.id][c3] /= n;
+      rawAvg[lab.id][keys[c3]] = Math.round((rawAvg[lab.id][keys[c3]] || 0) / n);
+    }
+  });
+
+  model = {
+    keys: keys, mean: mean, std: std,
+    centroids: centroids, rawAvg: rawAvg, counts: counts,
+    labelIds: labels.map(function (l) { return l.id; })
+  };
+  testLog = [];   // 새로 배웠으니 성적표도 새로 시작
+  save();
+}
+
+/* 학습 결과 = 동작마다의 대표 숫자를 표로 보여준다 */
+function renderTrainResult() {
+  if (!model) { trainResult.innerHTML = ""; return; }
+  var html = "<table><thead><tr><th>동작</th><th>예시 수</th>";
+  model.keys.forEach(function (k) { html += "<th>" + featLabel(k).label + "</th>"; });
+  html += "</tr></thead><tbody>";
+  labels.forEach(function (lab) {
+    html += "<tr><td>" + lab.emoji + " " + escapeHtml(lab.name) + "</td>";
+    html += "<td>" + (model.counts[lab.id] || 0) + "</td>";
+    model.keys.forEach(function (k) {
+      var v = model.rawAvg[lab.id] ? model.rawAvg[lab.id][k] : 0;
+      html += "<td>" + v + featLabel(k).unit + "</td>";
+    });
+    html += "</tr>";
+  });
+  html += "</tbody></table>";
+  html += "<p class='table-note'>이 표가 바로 <b>AI가 배운 내용 전부</b>입니다. 새 값이 들어오면 이 숫자들과 비교해서 가장 가까운 동작을 답으로 고릅니다.</p>";
+  trainResult.innerHTML = html;
+}
+
+/* ===================== 테스트 ===================== */
+var DIFF_CAP = 3;   // 한 숫자의 차이를 최대 이만큼만 센다
+var SHARPNESS = 1.5; // 클수록 1등에게 확률을 몰아준다
+
+function predict(f) {
+  var scored = model.labelIds.map(function (id) {
+    var c = model.centroids[id];
+    var d = 0;
+    for (var i = 0; i < model.keys.length; i++) {
+      var v = (f[model.keys[i]] - model.mean[i]) / model.std[i];
+      var diff = v - c[i];
+      // 학습할 때 거의 변하지 않았던 숫자(예: 가만히 둔 축, 온도)는
+      // 조금만 달라져도 차이가 엄청나게 커진다. 그 하나가 나머지 판단을
+      // 모두 덮어버리지 않도록 차이를 일정 크기에서 끊어 준다.
+      if (diff > DIFF_CAP) diff = DIFF_CAP;
+      else if (diff < -DIFF_CAP) diff = -DIFF_CAP;
+      d += diff * diff;
+    }
+    return { id: id, dist: Math.sqrt(d) };
+  });
+
+  // 가장 가까운 것을 기준으로, 그보다 얼마나 더 먼지로 확률을 계산한다
+  // (거리 차이가 클수록 1등의 확률이 높아진다)
+  var dmin = scored[0].dist;
+  scored.forEach(function (s) { if (s.dist < dmin) dmin = s.dist; });
+
+  var wsum = 0;
+  scored.forEach(function (s) {
+    s.w = Math.exp(-(s.dist - dmin) * SHARPNESS);
+    wsum += s.w;
+  });
+  scored.forEach(function (s) { s.prob = s.w / wsum; });
+  scored.sort(function (a, b) { return b.prob - a.prob; });
+  return scored;
+}
+
+function doTest(actualId, f) {
+  if (!model) return;
+  var scored = predict(f);
+  var best = scored[0];
+  var right = (best.id === actualId);
+
+  testLog.push({ actual: actualId, predicted: best.id });
+  save();
+
+  predictBox.className = "predict-box on";
+  predictName.textContent = labelById(best.id).emoji + " " + labelById(best.id).name +
+                            (right ? "  ⭕ 맞았어요!" : "  ❌ 틀렸어요");
+  predictName.className = "predict-name " + (right ? "right" : "wrong");
+
+  predictBars.innerHTML = "";
+  scored.forEach(function (s, i) {
+    var lab = labelById(s.id);
+    var item = document.createElement("div");
+    item.className = "pbar-item" + (i === 0 ? " top" : "");
+    item.innerHTML = "<div class='pbar-label'><span class='nm'></span><span class='pc'></span></div>" +
+                     "<div class='pbar-track'><div class='pbar-fill'></div></div>";
+    item.querySelector(".nm").textContent = lab.emoji + " " + lab.name;
+    item.querySelector(".pc").textContent = Math.round(s.prob * 100) + "%";
+    predictBars.appendChild(item);
+    setTimeout(function () {
+      item.querySelector(".pbar-fill").style.width = Math.round(s.prob * 100) + "%";
+    }, 20);
+  });
+
+  testNote.className = "notice " + (right ? "good" : "warn");
+  testNote.textContent = right
+    ? "AI가 맞혔어요! 다른 동작도 테스트해 보세요"
+    : "AI가 틀렸어요. 왜 헷갈렸을까요? 6단계 성적표에서 확인해 보세요";
+}
+
+/* ===================== 성적표 ===================== */
+function renderScore() {
+  var total = testLog.length;
+  var right = 0;
+  for (var i = 0; i < total; i++) if (testLog[i].actual === testLog[i].predicted) right++;
+
+  if (!total) {
+    scorePct.textContent = "-";
+    scoreDetail.textContent = "아직 테스트하지 않았어요.";
+    confusionEl.innerHTML = "";
+    return;
+  }
+
+  var pct = Math.round(right / total * 100);
+  scorePct.textContent = pct + "%";
+  scoreDetail.innerHTML = "총 <b>" + total + "번</b> 시도해서 <b>" + right + "번</b> 맞혔어요." + confusedSentence();
+
+  var html = "<table><thead><tr><th>실제 동작 \\ AI 대답</th>";
+  labels.forEach(function (l) { html += "<th>" + l.emoji + "</th>"; });
+  html += "</tr></thead><tbody>";
+  labels.forEach(function (a) {
+    html += "<tr><td>" + a.emoji + " " + escapeHtml(a.name) + "</td>";
+    labels.forEach(function (p) {
+      var n = 0;
+      for (var k = 0; k < testLog.length; k++) {
+        if (testLog[k].actual === a.id && testLog[k].predicted === p.id) n++;
+      }
+      var cls = (a.id === p.id) ? "diag" : (n === 0 ? "zero" : "");
+      html += "<td class='" + cls + "'>" + n + "</td>";
+    });
+    html += "</tr>";
+  });
+  html += "</tbody></table>";
+  confusionEl.innerHTML = html;
+}
+
+/* 가장 많이 틀린 조합을 문장으로 알려준다 */
+function confusedSentence() {
+  var best = null;
+  labels.forEach(function (a) {
+    labels.forEach(function (p) {
+      if (a.id === p.id) return;
+      var n = 0;
+      for (var k = 0; k < testLog.length; k++) {
+        if (testLog[k].actual === a.id && testLog[k].predicted === p.id) n++;
+      }
+      if (n > 0 && (!best || n > best.n)) best = { a: a, p: p, n: n };
+    });
+  });
+  if (!best) return " 아직 틀린 적이 없어요 👏";
+  return " AI는 <b>'" + escapeHtml(best.a.name) + "'</b> 을(를) <b>'" + escapeHtml(best.p.name) +
+         "'</b> 으로 " + best.n + "번 착각했어요. 두 동작의 대표 숫자를 4단계 표에서 비교해 보세요.";
+}
+
+$("btn-clear-score").addEventListener("click", function () {
+  testLog = [];
+  save();
+  predictBox.className = "predict-box";
+  renderAll();
+});
+
+/* ===================== 그리기 ===================== */
+function labelById(id) {
+  for (var i = 0; i < labels.length; i++) if (labels[i].id === id) return labels[i];
+  return { id: id, name: "(지운 동작)", emoji: "❓" };
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+  });
+}
+
+function renderAll() {
+  renderLabels();
+  renderFeatChips();
+  renderMotionButtons();
+  renderTrainResult();
+  renderScore();
+  renderLive();
+
+  // 3단계 안내
+  var totalSamples = samples.length;
+  var short = labels.filter(function (l) { return countOf(l.id) < MIN_PER_LABEL; });
+  var few = labels.filter(function (l) { return countOf(l.id) < GOOD_PER_LABEL; });
+  if (!port) {
+    collectNote.className = "notice info";
+    collectNote.textContent = "먼저 1단계에서 마이크로비트를 연결해 주세요.";
+  } else if (!totalSamples) {
+    collectNote.className = "notice info";
+    collectNote.textContent = "아직 모은 예시가 없어요. 동작 버튼을 눌러 시작해 보세요.";
+  } else if (short.length) {
+    collectNote.className = "notice warn";
+    collectNote.textContent = lastCollectMsg + " 아직 '" +
+      short.map(function (l) { return l.name; }).join("', '") +
+      "' 은(는) 예시가 " + MIN_PER_LABEL + "개보다 적어요.";
+  } else if (few.length) {
+    collectNote.className = "notice good";
+    collectNote.textContent = lastCollectMsg + " 학습할 수 있어요. 동작마다 " +
+      GOOD_PER_LABEL + "개까지 모으면 더 잘 맞힙니다.";
+  } else {
+    collectNote.className = "notice good";
+    collectNote.textContent = lastCollectMsg + " 모든 동작에 예시가 충분해요. 4단계로 넘어가세요!";
+  }
+
+  // 4단계 안내
+  btnTrain.disabled = !canTrain();
+  if (!canTrain()) {
+    trainNote.className = "notice info";
+    trainNote.textContent = "모든 동작마다 예시를 " + MIN_PER_LABEL + "개 이상 모으면 학습할 수 있어요.";
+  } else if (!model) {
+    trainNote.className = "notice warn";
+    trainNote.textContent = "예시가 바뀌었어요. [학습시키기]를 눌러 다시 배우게 해주세요.";
+  } else {
+    trainNote.className = "notice good";
+    trainNote.textContent = "✅ 학습 완료! 예시 " + samples.length + "개로 동작 " + labels.length +
+                            "가지의 대표 패턴을 찾았어요. 이제 5단계에서 시험해 보세요.";
+  }
+
+  // 5단계 안내
+  if (!model) {
+    testNote.className = "notice info";
+    testNote.textContent = "먼저 4단계에서 학습을 시켜 주세요.";
+    predictBox.className = "predict-box";
+  } else if (!port) {
+    testNote.className = "notice info";
+    testNote.textContent = "마이크로비트를 연결하면 테스트할 수 있어요.";
+  }
+}
+
+/* ===================== 시작 ===================== */
+if (!load()) {
+  labels = defaultLabels();
+  save();
+}
+
+if (!("serial" in navigator)) {
+  setStatus("❌ Chrome 또는 Edge에서 열어주세요", "bad");
+  setFace("sad");
+  btnConnect.disabled = true;
+} else {
+  navigator.serial.addEventListener("disconnect", function () {
+    if (port) disconnect(false);
+  });
+}
+
+renderAll();
+</script>
+</body>
+</html>
